@@ -767,25 +767,15 @@ class Log_Changes {
 	 * @return bool True if should skip.
 	 */
 	private function should_skip_option( $option ) {
-		// Skip transients.
+		// Skip transients using optimized pattern matching.
 		if ( strpos( $option, '_transient' ) === 0 || strpos( $option, '_site_transient' ) === 0 ) {
 			return true;
 		}
 		
-		// Skip internal WordPress options that change frequently.
-		$skip_options = array(
-			'cron',
-			'_site_transient_timeout',
-			'_site_transient',
-			'_transient_timeout',
-			'_transient',
-			'doing_cron',
-		);
-		
-		foreach ( $skip_options as $skip ) {
-			if ( strpos( $option, $skip ) !== false ) {
-				return true;
-			}
+		// Use regex for more efficient pattern matching of frequently-changing options.
+		$skip_pattern = '/^(cron|doing_cron|_site_transient|_transient)/';
+		if ( preg_match( $skip_pattern, $option ) ) {
+			return true;
 		}
 		
 		return false;
@@ -871,6 +861,8 @@ class Log_Changes {
 		$where_clauses = array();
 		$where_values = array();
 		
+		// Build WHERE clauses securely - all clause strings are hardcoded,
+		// only values are from user input and will be prepared with wpdb->prepare().
 		if ( ! empty( $_GET['filter_action'] ) ) {
 			$where_clauses[] = 'action_type = %s';
 			$where_values[] = sanitize_text_field( wp_unslash( $_GET['filter_action'] ) );
@@ -893,6 +885,7 @@ class Log_Changes {
 			$where_values[] = $search;
 		}
 		
+		// Build WHERE clause - safe because clauses are hardcoded strings, not user input.
 		$where_sql = '';
 		if ( ! empty( $where_clauses ) ) {
 			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );

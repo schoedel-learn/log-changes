@@ -59,12 +59,23 @@
 		}
 		
 		/**
+		 * Escape special regex characters.
+		 *
+		 * @param {string} str String to escape.
+		 * @return {string} Escaped string.
+		 */
+		function escapeRegex(str) {
+			return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		}
+		
+		/**
 		 * Highlight search terms in the description.
+		 * Uses safe DOM manipulation to prevent XSS.
 		 *
 		 * @param {string} term Search term to highlight.
 		 */
 		function highlightSearchTerms(term) {
-			var regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+			var regex = new RegExp('(' + escapeRegex(term) + ')', 'gi');
 			
 			$('.description-text').each(function() {
 				var element = $(this);
@@ -77,13 +88,13 @@
 					// Clear the element
 					element.empty();
 					
-					// Rebuild with mark tags around matches
+					// Rebuild with mark tags around matches using safe DOM methods
 					for (var i = 0; i < parts.length; i++) {
 						if (i % 2 === 0) {
-							// Non-matching text
+							// Non-matching text - use createTextNode for safety
 							element.append(document.createTextNode(parts[i]));
 						} else {
-							// Matching text - wrap in mark tag
+							// Matching text - wrap in mark tag using .text() for safety
 							var mark = $('<mark>').text(parts[i]);
 							element.append(mark);
 						}
