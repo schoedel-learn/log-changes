@@ -34,8 +34,8 @@ Each change log entry includes:
 
 ### Smart Detection
 
-- Automatically identifies user-initiated changes
-- Detects automated changes (WP-Cron, WP-CLI)
+- Only logs user-initiated changes through the UI
+- Automatically skips automated changes (WP-Cron, WP-CLI, system processes)
 - Skips transients and frequently-changing temporary data
 - Prevents log bloat from automated processes
 

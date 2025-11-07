@@ -44,7 +44,7 @@ The plugin is now:
 ## Each Log Entry Shows:
 
 - 📅 **When** it happened (timestamp)
-- 👤 **Who** did it (username or "system" for automated changes)
+- 👤 **Who** did it (logged-in username)
 - 🔄 **What** changed (action type: created, updated, deleted)
 - 📝 **Details** (description of the change)
 - 🔍 **Old & New** values (what it was before and after)

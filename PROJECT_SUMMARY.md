@@ -56,10 +56,10 @@ log-changes/
 - ✅ Object type and ID
 
 ### Smart Detection
-- ✅ User-initiated changes
-- ✅ WP-Cron (scheduled tasks)
-- ✅ WP-CLI (command line)
-- ✅ System/automated actions
+- ✅ Only logs user-initiated changes through UI
+- ✅ Automatically skips WP-Cron (scheduled tasks)
+- ✅ Automatically skips WP-CLI (command line)
+- ✅ Automatically skips system/automated actions
 - ✅ Transient filtering (prevents log bloat)
 
 ### Admin Interface
@@ -212,7 +212,7 @@ Before going live, test these scenarios:
 3. **Plugin/Theme Changes**
    - Activate/deactivate plugins
    - Switch themes
-   - Verify system attribution
+   - Verify only user actions are logged
 
 4. **Media Changes**
    - Upload images

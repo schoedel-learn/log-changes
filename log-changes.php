@@ -196,15 +196,9 @@ class Log_Changes {
 		$user_id = $current_user->ID;
 		$user_login = $current_user->user_login;
 		
-		// If no user is logged in, check if it's a cron job or automated action.
+		// Only log changes from logged-in users (UI changes), skip automated actions.
 		if ( ! $user_id ) {
-			if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
-				$user_login = 'wp-cron';
-			} elseif ( defined( 'WP_CLI' ) && WP_CLI ) {
-				$user_login = 'wp-cli';
-			} else {
-				$user_login = 'system';
-			}
+			return;
 		}
 		
 		$ip_address = $this->get_user_ip();
