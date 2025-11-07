@@ -39,14 +39,24 @@ Each change log entry includes:
 - Skips transients and frequently-changing temporary data
 - Prevents log bloat from automated processes
 
+### Export and Cleanup
+
+- **Export to CSV**: Download logs as CSV for backup or analysis in Excel/Google Sheets
+- **Export & Delete**: Export logs to CSV then delete them from database to free up space
+- **Date Range Filtering**: Filter logs by date range for targeted operations
+- **Automatic Cleanup**: Logs older than 21 days are automatically deleted daily
+- **Bulk Operations**: Export or delete multiple logs at once based on filters
+
 ### User-Friendly Interface
 
 - Clean, organized admin interface
-- Advanced filtering by action type, object type, and user
+- Advanced filtering by action type, object type, user, and date range
 - Search functionality across descriptions and object names
 - Pagination for large log sets
 - Expandable details view for old/new values
 - Clickable badges for quick filtering
+- One-click export to CSV
+- Confirmation dialogs for destructive actions
 
 ## Installation
 
@@ -75,11 +85,29 @@ Navigate to **Change Log** in the WordPress admin menu to view all tracked chang
 
 ### Filtering Logs
 
-Use the filter dropdowns to narrow results by:
+Use the filter dropdowns and inputs to narrow results by:
 - Action type (created, updated, deleted, etc.)
 - Object type (post, user, plugin, etc.)
 - User (who made the change)
+- Date range (from and to dates)
 - Search terms (in descriptions and object names)
+
+### Exporting Logs
+
+**Export to CSV**:
+1. Apply filters to select the logs you want to export (or export all)
+2. Click "Export to CSV" button
+3. CSV file downloads automatically with timestamp in filename
+4. Open in Excel, Google Sheets, or any spreadsheet application
+
+**Export & Delete**:
+1. Apply filters to select logs you want to archive and remove
+2. Click "Export & Delete" button
+3. Confirm the action in the dialog
+4. CSV downloads and selected logs are deleted from database
+5. Success message shows number of deleted entries
+
+**Note**: Logs are automatically cleaned up after 21 days. Use export before they're deleted if you need historical data.
 
 ### Viewing Details
 
@@ -127,6 +155,16 @@ The plugin creates a single custom table `{prefix}_change_log` with the followin
 - `ip_address` - IP address of requester
 - `user_agent` - Browser/client information
 
+### Automatic Cleanup
+
+The plugin automatically deletes logs older than 21 days to prevent database bloat:
+- Runs daily via WordPress cron
+- Deletes logs with timestamp older than 21 days
+- Logs the cleanup action itself for audit trail
+- Can be disabled by removing the scheduled event (advanced users)
+
+Export logs before they're automatically deleted if you need to retain historical data.
+
 ## Privacy
 
 All data is stored locally in your WordPress database. No data is sent to external services. The plugin logs:
@@ -135,6 +173,8 @@ All data is stored locally in your WordPress database. No data is sent to extern
 - IP addresses
 - User agent strings
 - Content changes
+
+Logs are automatically deleted after 21 days. Exported CSV files are downloaded to your local machine and not stored on the server.
 
 Ensure your privacy policy discloses this tracking if required by your jurisdiction.
 

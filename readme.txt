@@ -4,7 +4,7 @@ Tags: activity log, audit log, change tracking, site monitoring, security
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.2
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -23,7 +23,11 @@ Log Changes is a comprehensive WordPress plugin that tracks all changes made to 
 * **Menu & Widget Tracking** - Monitor changes to navigation menus and widgets
 * **Settings Tracking** - Log changes to WordPress options and settings
 * **Detailed Information** - Captures user, timestamp, IP address, and user agent
-* **Advanced Filtering** - Filter logs by action type, object type, user, or search terms
+* **Export to CSV** - Download logs as CSV for backup or analysis in Excel/Google Sheets
+* **Bulk Delete** - Export and delete old logs to free up database space
+* **Date Range Filtering** - Filter logs by date range for targeted operations
+* **Automatic Cleanup** - Logs older than 21 days are automatically deleted daily
+* **Advanced Filtering** - Filter logs by action type, object type, user, date range, or search terms
 * **Clean Interface** - Easy-to-use admin interface with pagination
 * **Automatic Detection** - Identifies whether changes were made by users, cron jobs, or WP-CLI
 
@@ -38,6 +42,8 @@ Log Changes is a comprehensive WordPress plugin that tracks all changes made to 
 **Privacy & Performance:**
 
 * All data is stored in your WordPress database
+* Logs automatically deleted after 21 days (configurable)
+* Export to CSV for long-term archival
 * Minimal performance impact
 * Automatically skips transients and temporary data
 * Clean uninstall removes all data
@@ -57,11 +63,11 @@ No. The plugin is designed to have minimal impact on performance. It logs change
 
 = Can I export the change logs? =
 
-Currently, you can view and filter logs in the admin interface. Export functionality may be added in future versions.
+Yes! Click the "Export to CSV" button to download all logs (or filtered logs) as a CSV file. The file can be opened in Excel, Google Sheets, or any spreadsheet application. Use this for backup or external analysis.
 
 = How long are logs kept? =
 
-Logs are kept indefinitely by default. You can manually clear old logs from the database if needed.
+Logs are automatically deleted after 21 days to prevent database bloat. You can export logs to CSV before they're deleted if you need to keep historical data. The automatic cleanup runs daily via WordPress cron.
 
 = Does this work with multisite? =
 
@@ -69,7 +75,7 @@ Yes, the plugin works with WordPress multisite installations. Each site in the n
 
 = What happens when I deactivate the plugin? =
 
-When deactivated, the plugin stops tracking changes but keeps existing logs. When you delete the plugin, all logs are removed from the database.
+When deactivated, the plugin stops tracking changes and clears the automatic cleanup schedule. Existing logs remain in the database. When you delete the plugin through WordPress admin, all logs are permanently removed from the database.
 
 = Can I exclude certain types of changes from being logged? =
 
@@ -83,6 +89,15 @@ The plugin automatically excludes transients and frequently-changing internal Wo
 4. Clean, organized display of change information
 
 == Changelog ==
+
+= 1.1.0 =
+* Added: Export logs to CSV functionality
+* Added: Export & Delete feature to archive and remove old logs
+* Added: Date range filtering for targeted operations
+* Added: Automatic deletion of logs older than 21 days (daily cron)
+* Added: Success/error notifications for user actions
+* Improved: Admin interface with better organization
+* Improved: Filter controls with date inputs
 
 = 1.0.0 =
 * Initial release
@@ -115,7 +130,7 @@ Log Changes stores the following information:
 * IP address of the user making the change
 * User agent (browser information)
 
-This data is stored in your WordPress database and is not sent to any external services. The plugin is designed for internal site auditing and does not share data with third parties.
+This data is stored in your WordPress database and is not sent to any external services. Logs are automatically deleted after 21 days. Exported CSV files are downloaded to your local machine and not stored on the server. The plugin is designed for internal site auditing and does not share data with third parties.
 
 == Support ==
 
