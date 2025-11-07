@@ -7,6 +7,9 @@
 (function($) {
 	'use strict';
 	
+	// Constants
+	var EXPORT_TIMEOUT_MS = 3000; // Fallback timeout for iframe export detection
+	
 	$(document).ready(function() {
 		/**
 		 * Toggle log details visibility.
@@ -163,6 +166,63 @@
 		if ($('.log-changes-table tbody tr').length > 0) {
 			$('.wrap h1').after('<p class="description">Track all changes to your WordPress site. Use the filters to find specific changes.</p>');
 		}
+		
+		/**
+		 * Handle Export & Delete button.
+		 * Uses a two-step approach: export first, then show manual delete button.
+		 */
+		$('#export-delete-btn').on('click', function(e) {
+			e.preventDefault();
+			
+			if (!confirm(logChangesL10n.confirmExportDelete)) {
+				return;
+			}
+			
+			// Build export URL with current filters
+			var url = new URL(window.location.href);
+			url.searchParams.set('action', 'export');
+			url.searchParams.set('_wpnonce', logChangesL10n.exportNonce);
+			
+			// Show loading state
+			var $button = $(this);
+			var originalText = $button.text();
+			$button.prop('disabled', true).text(logChangesL10n.loading || 'Exporting...');
+			
+			// Create hidden iframe to trigger download without navigation
+			var iframe = $('<iframe>', {
+				src: url.toString(),
+				style: 'display:none;'
+			}).appendTo('body');
+			
+			// Monitor iframe load to detect when export is complete
+			var timeout;
+			var loadHandler = function() {
+				clearTimeout(timeout);
+				
+				// Remove iframe
+				iframe.off('load error', loadHandler);
+				iframe.remove();
+				
+				// Restore button state
+				$button.prop('disabled', false).text(originalText);
+				
+				// Show delete confirmation
+				if (confirm(logChangesL10n.confirmDelete || 'CSV exported. Do you want to delete these logs from the database now?')) {
+					var deleteUrl = new URL(window.location.href);
+					deleteUrl.searchParams.set('action', 'delete_exported');
+					deleteUrl.searchParams.set('_wpnonce', logChangesL10n.deleteNonce);
+					deleteUrl.searchParams.delete('deleted');
+					
+					window.location.href = deleteUrl.toString();
+				}
+			};
+			
+			// Handle both load and error events
+			iframe.on('load error', loadHandler);
+			
+			// Fallback timeout in case load event doesn't fire (e.g., same-origin issues)
+			timeout = setTimeout(loadHandler, EXPORT_TIMEOUT_MS);
+		});
 	});
 	
 })(jQuery);

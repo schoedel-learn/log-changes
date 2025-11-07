@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Log Changes
  * Plugin URI: https://schoedel.design/log-changes
- * Description: Tracks all changes to your WordPress site including posts, pages, users, plugins, themes, and settings. Records what changed, when, and who made the changes.
- * Version: 1.0.0
+ * Description: Tracks all changes to your WordPress site including posts, pages, users, plugins, themes, and settings. Records what changed, when, and who made the changes. Includes CSV export and automatic cleanup after 21 days.
+ * Version: 1.1.0
  * Requires at least: 5.0
  * Requires PHP: 7.2
  * Author: Barry Schoedel
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'LOG_CHANGES_VERSION', '1.0.0' );
+define( 'LOG_CHANGES_VERSION', '1.1.0' );
 define( 'LOG_CHANGES_PLUGIN_FILE', __FILE__ );
 define( 'LOG_CHANGES_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOG_CHANGES_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -69,6 +69,14 @@ class Log_Changes {
 		if ( is_admin() ) {
 			$this->init_admin();
 		}
+		
+		// Schedule automatic cleanup if not already scheduled.
+		if ( ! wp_next_scheduled( 'log_changes_auto_cleanup' ) ) {
+			wp_schedule_event( time(), 'daily', 'log_changes_auto_cleanup' );
+		}
+		
+		// Hook for automatic cleanup.
+		add_action( 'log_changes_auto_cleanup', array( $this, 'auto_cleanup_old_logs' ) );
 	}
 
 	/**
@@ -117,6 +125,7 @@ class Log_Changes {
 	private function init_admin() {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'admin_init', array( $this, 'handle_export_delete_actions' ) );
 	}
 
 	/**
@@ -168,6 +177,12 @@ class Log_Changes {
 	 * Plugin deactivation.
 	 */
 	public function deactivate() {
+		// Clear scheduled event.
+		$timestamp = wp_next_scheduled( 'log_changes_auto_cleanup' );
+		if ( $timestamp ) {
+			wp_unschedule_event( $timestamp, 'log_changes_auto_cleanup' );
+		}
+		
 		// Log plugin deactivation.
 		$this->log_change(
 			'deactivated',
@@ -790,6 +805,326 @@ class Log_Changes {
 	}
 
 	/**
+	 * Handle export and delete actions from admin page.
+	 */
+	public function handle_export_delete_actions() {
+		// Check if we're on the log changes page.
+		if ( ! isset( $_GET['page'] ) || 'log-changes' !== $_GET['page'] ) {
+			return;
+		}
+		
+		// Check for export action.
+		if ( isset( $_GET['action'] ) && 'export' === $_GET['action'] ) {
+			// Verify nonce.
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'log_changes_export' ) ) {
+				wp_die( esc_html__( 'Security check failed.', 'log-changes' ) );
+			}
+			
+			// Check user capabilities.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'You do not have sufficient permissions to export logs.', 'log-changes' ) );
+			}
+			
+			// Build filters from GET parameters.
+			list( $where_clauses, $where_values ) = $this->build_filter_clauses();
+			
+			// Export logs.
+			$this->export_logs_to_csv( $where_clauses, $where_values );
+		}
+		
+		// Check for export and delete action.
+		if ( isset( $_GET['action'] ) && 'export_delete' === $_GET['action'] ) {
+			// Verify nonce.
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'log_changes_export_delete' ) ) {
+				wp_die( esc_html__( 'Security check failed.', 'log-changes' ) );
+			}
+			
+			// Check user capabilities.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'You do not have sufficient permissions to delete logs.', 'log-changes' ) );
+			}
+			
+			// Build filters from GET parameters.
+			list( $where_clauses, $where_values ) = $this->build_filter_clauses();
+			
+			// First export logs.
+			$this->export_logs_to_csv( $where_clauses, $where_values );
+			// Note: The export will exit, so deletion won't happen here.
+			// We need to handle this differently - export first, then redirect with delete flag.
+		}
+		
+		// Check for delete after export action.
+		if ( isset( $_GET['action'] ) && 'delete_exported' === $_GET['action'] ) {
+			// Verify nonce.
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'log_changes_delete' ) ) {
+				wp_die( esc_html__( 'Security check failed.', 'log-changes' ) );
+			}
+			
+			// Check user capabilities.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'You do not have sufficient permissions to delete logs.', 'log-changes' ) );
+			}
+			
+			// Build filters from GET parameters.
+			list( $where_clauses, $where_values ) = $this->build_filter_clauses();
+			
+			// Delete logs.
+			$deleted_count = $this->delete_logs( $where_clauses, $where_values );
+			
+			// Redirect with success message.
+			if ( false !== $deleted_count ) {
+				wp_safe_redirect( add_query_arg(
+					array(
+						'page' => 'log-changes',
+						'deleted' => $deleted_count,
+					),
+					admin_url( 'admin.php' )
+				) );
+				exit;
+			}
+		}
+	}
+	
+	/**
+	 * Build filter clauses from GET parameters.
+	 *
+	 * @return array Array containing where_clauses and where_values.
+	 */
+	private function build_filter_clauses() {
+		global $wpdb;
+		
+		$where_clauses = array();
+		$where_values = array();
+		
+		// Build WHERE clauses securely.
+		if ( ! empty( $_GET['filter_action'] ) ) {
+			$where_clauses[] = 'action_type = %s';
+			$where_values[] = sanitize_text_field( wp_unslash( $_GET['filter_action'] ) );
+		}
+		
+		if ( ! empty( $_GET['filter_object'] ) ) {
+			$where_clauses[] = 'object_type = %s';
+			$where_values[] = sanitize_text_field( wp_unslash( $_GET['filter_object'] ) );
+		}
+		
+		if ( ! empty( $_GET['filter_user'] ) ) {
+			$where_clauses[] = 'user_id = %d';
+			$where_values[] = absint( $_GET['filter_user'] );
+		}
+		
+		if ( ! empty( $_GET['search'] ) ) {
+			$search = '%' . $wpdb->esc_like( sanitize_text_field( wp_unslash( $_GET['search'] ) ) ) . '%';
+			$where_clauses[] = '(description LIKE %s OR object_name LIKE %s)';
+			$where_values[] = $search;
+			$where_values[] = $search;
+		}
+		
+		// Add date range filter if provided.
+		if ( ! empty( $_GET['date_from'] ) ) {
+			$date_from = sanitize_text_field( wp_unslash( $_GET['date_from'] ) );
+			// Validate date format (YYYY-MM-DD).
+			if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_from ) ) {
+				$where_clauses[] = 'timestamp >= %s';
+				$where_values[] = $date_from . ' 00:00:00';
+			}
+		}
+		
+		if ( ! empty( $_GET['date_to'] ) ) {
+			$date_to = sanitize_text_field( wp_unslash( $_GET['date_to'] ) );
+			// Validate date format (YYYY-MM-DD).
+			if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_to ) ) {
+				$where_clauses[] = 'timestamp <= %s';
+				$where_values[] = $date_to . ' 23:59:59';
+			}
+		}
+		
+		return array( $where_clauses, $where_values );
+	}
+
+	/**
+	 * Export logs to CSV file.
+	 *
+	 * @param array $where_clauses Array of WHERE clause strings.
+	 * @param array $where_values Array of values for WHERE clauses.
+	 */
+	public function export_logs_to_csv( $where_clauses = array(), $where_values = array() ) {
+		global $wpdb;
+		
+		// Build WHERE clause.
+		$where_sql = '';
+		if ( ! empty( $where_clauses ) ) {
+			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
+		}
+		
+		// First, check count to prevent memory issues with large datasets.
+		if ( ! empty( $where_values ) ) {
+			$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		} else {
+			$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+		
+		if ( $count === 0 ) {
+			wp_die( esc_html__( 'No logs to export.', 'log-changes' ) );
+		}
+		
+		// Warn if exporting a very large number of logs.
+		if ( $count > 50000 ) {
+			wp_die( esc_html__( 'Too many logs to export at once (limit: 50,000). Please use date range filters to narrow your selection.', 'log-changes' ) );
+		}
+		
+		// Set headers for CSV download.
+		if ( ! headers_sent() ) {
+			$timestamp = gmdate( 'Y-m-d-H-i-s' );
+			$filename = sprintf( 'change-logs-%s.csv', sanitize_file_name( $timestamp ) );
+			
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=' . $filename );
+			header( 'Pragma: no-cache' );
+			header( 'Expires: 0' );
+		}
+		
+		// Open output stream.
+		$output = fopen( 'php://output', 'w' );
+		
+		if ( false === $output ) {
+			wp_die( esc_html__( 'Unable to create export file. Please try again.', 'log-changes' ) );
+		}
+		
+		// Add UTF-8 BOM for Excel compatibility.
+		fprintf( $output, chr(0xEF) . chr(0xBB) . chr(0xBF) );
+		
+		// Add CSV headers.
+		fputcsv( $output, array(
+			'ID',
+			'Timestamp',
+			'User ID',
+			'User Login',
+			'Action Type',
+			'Object Type',
+			'Object ID',
+			'Object Name',
+			'Description',
+			'Old Value',
+			'New Value',
+			'IP Address',
+			'User Agent',
+		) );
+		
+		// Process in chunks to avoid memory issues.
+		$chunk_size = 1000;
+		$offset = 0;
+		
+		while ( $offset < $count ) {
+			// Get logs in chunks.
+			if ( ! empty( $where_values ) ) {
+				$chunk_values = array_merge( $where_values, array( $chunk_size, $offset ) );
+				$logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$this->table_name} {$where_sql} ORDER BY timestamp DESC LIMIT %d OFFSET %d", $chunk_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			} else {
+				$logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$this->table_name} ORDER BY timestamp DESC LIMIT %d OFFSET %d", $chunk_size, $offset ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			}
+			
+			// Add data rows.
+			foreach ( $logs as $log ) {
+				fputcsv( $output, array(
+					$log->id,
+					$log->timestamp,
+					$log->user_id,
+					$log->user_login,
+					$log->action_type,
+					$log->object_type,
+					$log->object_id,
+					$log->object_name,
+					$log->description,
+					$log->old_value,
+					$log->new_value,
+					$log->ip_address,
+					$log->user_agent,
+				) );
+			}
+			
+			$offset += $chunk_size;
+			
+			// Clear memory.
+			unset( $logs );
+		}
+		
+		fclose( $output );
+		exit;
+	}
+	
+	/**
+	 * Delete logs based on filters.
+	 *
+	 * @param array $where_clauses Array of WHERE clause strings.
+	 * @param array $where_values Array of values for WHERE clauses.
+	 * @return int|false Number of rows deleted or false on failure.
+	 */
+	public function delete_logs( $where_clauses = array(), $where_values = array() ) {
+		global $wpdb;
+		
+		// Require at least one filter to prevent accidental deletion of all logs.
+		// Both clauses and values must be present.
+		if ( empty( $where_clauses ) || empty( $where_values ) ) {
+			return false;
+		}
+		
+		// Build WHERE clause.
+		$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
+		
+		// First, get count for return value.
+		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		
+		// Then delete.
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		
+		return $count;
+	}
+	
+	/**
+	 * Automatically cleanup logs older than 21 days.
+	 * This runs daily via WordPress cron.
+	 */
+	public function auto_cleanup_old_logs() {
+		global $wpdb;
+		
+		// Calculate the cutoff date (21 days ago).
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( '-21 days' ) );
+		
+		// Delete old logs.
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$this->table_name} WHERE timestamp < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$cutoff_date
+			)
+		);
+		
+		// Log the cleanup action if any logs were deleted.
+		if ( $deleted > 0 ) {
+			// Use direct insert to avoid recursive logging.
+			$wpdb->insert(
+				$this->table_name,
+				array(
+					'timestamp'    => current_time( 'mysql' ),
+					'user_id'      => 0,
+					'user_login'   => 'System',
+					'action_type'  => 'cleanup',
+					'object_type'  => 'log',
+					'object_id'    => 0,
+					'object_name'  => 'Automatic Cleanup',
+					'description'  => sprintf( 'Automatically deleted %d log entries older than 21 days', $deleted ),
+					'old_value'    => null,
+					'new_value'    => null,
+					'ip_address'   => '',
+					'user_agent'   => 'WordPress Cron',
+				),
+				array( '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
+		
+		return $deleted;
+	}
+
+	/**
 	 * Add admin menu.
 	 */
 	public function add_admin_menu() {
@@ -840,10 +1175,16 @@ class Log_Changes {
 				'log-changes-admin',
 				'logChangesL10n',
 				array(
-					'confirmClearAll' => __( 'Are you sure you want to clear all logs? This action cannot be undone.', 'log-changes' ),
-					'loading'         => __( 'Loading...', 'log-changes' ),
-					'showDetails'     => __( 'Show Details', 'log-changes' ),
-					'hideDetails'     => __( 'Hide Details', 'log-changes' ),
+					'confirmClearAll'     => __( 'Are you sure you want to clear all logs? This action cannot be undone.', 'log-changes' ),
+					'confirmExportDelete' => __( 'This will export the filtered logs to CSV. After the download completes, you\'ll be asked to delete them from the database. Continue?', 'log-changes' ),
+					'confirmDelete'       => __( 'CSV exported. Do you want to delete these logs from the database now? This action cannot be undone.', 'log-changes' ),
+					'loading'             => __( 'Loading...', 'log-changes' ),
+					'showDetails'         => __( 'Show Details', 'log-changes' ),
+					'hideDetails'         => __( 'Hide Details', 'log-changes' ),
+					'exportNonce'         => wp_create_nonce( 'log_changes_export' ),
+					'exportDeleteNonce'   => wp_create_nonce( 'log_changes_export_delete' ),
+					'deleteNonce'         => wp_create_nonce( 'log_changes_delete' ),
+					'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
 				)
 			);
 		}

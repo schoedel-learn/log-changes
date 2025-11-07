@@ -14,6 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="wrap">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 	
+	<?php
+	// Show success message if logs were deleted.
+	if ( isset( $_GET['deleted'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$deleted_count = absint( $_GET['deleted'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		?>
+		<div class="notice notice-success is-dismissible">
+			<p>
+				<?php
+				/* translators: %d: number of deleted log entries */
+				printf( esc_html( _n( '%d log entry deleted successfully.', '%d log entries deleted successfully.', $deleted_count, 'log-changes' ) ), (int) $deleted_count );
+				?>
+			</p>
+		</div>
+	<?php endif; ?>
+	
 	<div class="log-changes-filters">
 		<form method="get" action="">
 			<input type="hidden" name="page" value="log-changes" />
@@ -22,12 +37,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<input type="text" 
 					name="search" 
 					id="log-search" 
-					placeholder="<?php esc_attr_e( 'Search logs...', 'log-changes-main' ); ?>" 
+					placeholder="<?php esc_attr_e( 'Search logs...', 'log-changes' ); ?>" 
 					value="<?php echo isset( $_GET['search'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_GET['search'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" 
 				/>
 				
 				<select name="filter_action" id="filter-action">
-					<option value=""><?php esc_html_e( 'All Actions', 'log-changes-main' ); ?></option>
+					<option value=""><?php esc_html_e( 'All Actions', 'log-changes' ); ?></option>
 					<?php foreach ( $action_types as $action ) : ?>
 						<option value="<?php echo esc_attr( $action ); ?>" <?php selected( isset( $_GET['filter_action'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_action'] ) ) : '', $action ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>>
 							<?php echo esc_html( ucfirst( $action ) ); ?>
@@ -36,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</select>
 				
 				<select name="filter_object" id="filter-object">
-					<option value=""><?php esc_html_e( 'All Object Types', 'log-changes-main' ); ?></option>
+					<option value=""><?php esc_html_e( 'All Object Types', 'log-changes' ); ?></option>
 					<?php foreach ( $object_types as $object ) : ?>
 						<option value="<?php echo esc_attr( $object ); ?>" <?php selected( isset( $_GET['filter_object'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_object'] ) ) : '', $object ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>>
 							<?php echo esc_html( ucfirst( $object ) ); ?>
@@ -45,7 +60,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</select>
 				
 				<select name="filter_user" id="filter-user">
-					<option value=""><?php esc_html_e( 'All Users', 'log-changes-main' ); ?></option>
+					<option value=""><?php esc_html_e( 'All Users', 'log-changes' ); ?></option>
 					<?php foreach ( $users as $user ) : ?>
 						<option value="<?php echo esc_attr( $user->user_id ); ?>" <?php selected( isset( $_GET['filter_user'] ) ? absint( $_GET['filter_user'] ) : 0, $user->user_id ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>>
 							<?php echo esc_html( $user->user_login ); ?>
@@ -53,10 +68,54 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endforeach; ?>
 				</select>
 				
-				<input type="submit" class="button" value="<?php esc_attr_e( 'Filter', 'log-changes-main' ); ?>" />
+				<label for="date-from"><?php esc_html_e( 'From:', 'log-changes' ); ?></label>
+				<input type="date" 
+					name="date_from" 
+					id="date-from" 
+					value="<?php echo isset( $_GET['date_from'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" 
+				/>
+				
+				<label for="date-to"><?php esc_html_e( 'To:', 'log-changes' ); ?></label>
+				<input type="date" 
+					name="date_to" 
+					id="date-to" 
+					value="<?php echo isset( $_GET['date_to'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" 
+				/>
+				
+				<input type="submit" class="button" value="<?php esc_attr_e( 'Filter', 'log-changes' ); ?>" />
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=log-changes' ) ); ?>" class="button">
-					<?php esc_html_e( 'Reset', 'log-changes-main' ); ?>
+					<?php esc_html_e( 'Reset', 'log-changes' ); ?>
 				</a>
+			</div>
+			
+			<div class="log-changes-export-row">
+				<?php
+				$export_url = wp_nonce_url(
+					add_query_arg(
+						array_merge(
+							array( 'action' => 'export' ),
+							array_filter( $_GET, function( $key ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+								return in_array( $key, array( 'page', 'filter_action', 'filter_object', 'filter_user', 'search', 'date_from', 'date_to' ), true );
+							}, ARRAY_FILTER_USE_KEY )
+						),
+						admin_url( 'admin.php' )
+					),
+					'log_changes_export'
+				);
+				?>
+				<a href="<?php echo esc_url( $export_url ); ?>" class="button button-primary">
+					<span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
+					<?php esc_html_e( 'Export to CSV', 'log-changes' ); ?>
+				</a>
+				
+				<button type="button" id="export-delete-btn" class="button button-secondary">
+					<span class="dashicons dashicons-trash" style="margin-top: 3px;"></span>
+					<?php esc_html_e( 'Export & Delete', 'log-changes' ); ?>
+				</button>
+				
+				<span class="description" style="margin-left: 10px;">
+					<?php esc_html_e( 'Note: Logs older than 21 days are automatically deleted.', 'log-changes' ); ?>
+				</span>
 			</div>
 		</form>
 	</div>
@@ -65,24 +124,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p>
 			<?php
 			/* translators: %d: number of log entries */
-			printf( esc_html( _n( '%d log entry found', '%d log entries found', $total_items, 'log-changes-main' ) ), (int) $total_items );
+			printf( esc_html( _n( '%d log entry found', '%d log entries found', $total_items, 'log-changes' ) ), (int) $total_items );
 			?>
 		</p>
 	</div>
 	
 	<?php if ( empty( $logs ) ) : ?>
 		<div class="notice notice-info">
-			<p><?php esc_html_e( 'No change logs found.', 'log-changes-main' ); ?></p>
+			<p><?php esc_html_e( 'No change logs found.', 'log-changes' ); ?></p>
 		</div>
 	<?php else : ?>
 		<table class="wp-list-table widefat fixed striped log-changes-table">
 			<thead>
 				<tr>
-					<th class="column-timestamp"><?php esc_html_e( 'Timestamp', 'log-changes-main' ); ?></th>
-					<th class="column-user"><?php esc_html_e( 'User', 'log-changes-main' ); ?></th>
-					<th class="column-action"><?php esc_html_e( 'Action', 'log-changes-main' ); ?></th>
-					<th class="column-object"><?php esc_html_e( 'Object Type', 'log-changes-main' ); ?></th>
-					<th class="column-description"><?php esc_html_e( 'Description', 'log-changes-main' ); ?></th>
+					<th class="column-timestamp"><?php esc_html_e( 'Timestamp', 'log-changes' ); ?></th>
+					<th class="column-user"><?php esc_html_e( 'User', 'log-changes' ); ?></th>
+					<th class="column-action"><?php esc_html_e( 'Action', 'log-changes' ); ?></th>
+					<th class="column-object"><?php esc_html_e( 'Object Type', 'log-changes' ); ?></th>
+					<th class="column-description"><?php esc_html_e( 'Description', 'log-changes' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -122,30 +181,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php if ( $log->old_value || $log->new_value ) : ?>
 								<div class="log-details">
 									<button type="button" class="button button-small toggle-details" data-log-id="<?php echo esc_attr( $log->id ); ?>">
-										<?php esc_html_e( 'Show Details', 'log-changes-main' ); ?>
+										<?php esc_html_e( 'Show Details', 'log-changes' ); ?>
 									</button>
 									<div class="log-details-content" id="details-<?php echo esc_attr( $log->id ); ?>" style="display: none;">
 										<?php if ( $log->old_value ) : ?>
 											<div class="old-value">
-												<strong><?php esc_html_e( 'Old Value:', 'log-changes-main' ); ?></strong>
+												<strong><?php esc_html_e( 'Old Value:', 'log-changes' ); ?></strong>
 												<pre><?php echo esc_html( $log->old_value ); ?></pre>
 											</div>
 										<?php endif; ?>
 										<?php if ( $log->new_value ) : ?>
 											<div class="new-value">
-												<strong><?php esc_html_e( 'New Value:', 'log-changes-main' ); ?></strong>
+												<strong><?php esc_html_e( 'New Value:', 'log-changes' ); ?></strong>
 												<pre><?php echo esc_html( $log->new_value ); ?></pre>
 											</div>
 										<?php endif; ?>
 										<?php if ( $log->ip_address ) : ?>
 											<div class="ip-address">
-												<strong><?php esc_html_e( 'IP Address:', 'log-changes-main' ); ?></strong>
+												<strong><?php esc_html_e( 'IP Address:', 'log-changes' ); ?></strong>
 												<?php echo esc_html( $log->ip_address ); ?>
 											</div>
 										<?php endif; ?>
 										<?php if ( $log->user_agent ) : ?>
 											<div class="user-agent">
-												<strong><?php esc_html_e( 'User Agent:', 'log-changes-main' ); ?></strong>
+												<strong><?php esc_html_e( 'User Agent:', 'log-changes' ); ?></strong>
 												<?php echo esc_html( $log->user_agent ); ?>
 											</div>
 										<?php endif; ?>
@@ -166,8 +225,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 						array(
 							'base'      => add_query_arg( 'paged', '%#%' ),
 							'format'    => '',
-							'prev_text' => __( '&laquo;', 'log-changes-main' ),
-							'next_text' => __( '&raquo;', 'log-changes-main' ),
+							'prev_text' => __( '&laquo;', 'log-changes' ),
+							'next_text' => __( '&raquo;', 'log-changes' ),
 							'total'     => $total_pages,
 							'current'   => $page_num,
 						)
@@ -176,7 +235,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					if ( $page_links ) {
 						echo '<span class="displaying-num">' . sprintf(
 							/* translators: 1: current page number, 2: total pages */
-							esc_html__( 'Page %1$s of %2$s', 'log-changes-main' ),
+							esc_html__( 'Page %1$s of %2$s', 'log-changes' ),
 							(int) $page_num,
 							(int) $total_pages
 						) . '</span>';
