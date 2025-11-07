@@ -77,6 +77,57 @@ cd log-changes
 
 Then activate through WordPress admin.
 
+## Configuration
+
+### Settings Page
+
+Access settings at **Settings → Change Log Settings**
+
+**Option Logging Controls:**
+- Control which WordPress option changes are logged
+- Exclude noisy automated options (asset versions, hit counters, session data, etc.)
+- Allowlist critical settings to always log (blogname, siteurl, etc.)
+- Control whether to log wp_user_roles (often updated by plugins automatically)
+- One pattern per line with wildcard support (e.g., `*_transient*` matches all transients)
+
+**Logging Controls:**
+- Enable/disable logging by content type
+- Toggle logging for posts, users, plugins, themes, media, menus, and widgets
+- Fine-tune what gets tracked based on your needs
+
+**Cleanup Settings:**
+- Adjust automatic cleanup period (default: 21 days, range: 1-365 days)
+- Manually trigger cleanup to delete old logs immediately
+- Logs older than the configured period are automatically deleted daily
+
+### Developer Filters
+
+**Programmatically exclude options:**
+```php
+add_filter( 'log_changes_option_exclusions', function( $exclusions ) {
+    $exclusions[] = 'my_plugin_cache_key';
+    $exclusions[] = 'another_noisy_option';
+    return $exclusions;
+} );
+```
+
+**Control whether specific option should log:**
+```php
+add_filter( 'log_changes_should_log_option', function( $should_log, $option_name, $old_value, $new_value ) {
+    // Skip if value didn't actually change
+    if ( $old_value === $new_value ) {
+        return false;
+    }
+    
+    // Skip specific option based on custom logic
+    if ( $option_name === 'my_special_option' && some_condition() ) {
+        return false;
+    }
+    
+    return $should_log;
+}, 10, 4 );
+```
+
 ## Usage
 
 ### Viewing Logs
@@ -107,7 +158,7 @@ Use the filter dropdowns and inputs to narrow results by:
 4. CSV downloads and selected logs are deleted from database
 5. Success message shows number of deleted entries
 
-**Note**: Logs are automatically cleaned up after 21 days. Use export before they're deleted if you need historical data.
+**Note**: Logs are automatically cleaned up based on the configured cleanup period (default: 21 days, configurable in Settings). Use export before they're deleted if you need historical data.
 
 ### Viewing Details
 
@@ -157,11 +208,12 @@ The plugin creates a single custom table `{prefix}_change_log` with the followin
 
 ### Automatic Cleanup
 
-The plugin automatically deletes logs older than 21 days to prevent database bloat:
+The plugin automatically deletes logs older than the configured period to prevent database bloat:
 - Runs daily via WordPress cron
-- Deletes logs with timestamp older than 21 days
+- Default cleanup period: 21 days (configurable in Settings: 1-365 days)
+- Deletes logs with timestamp older than the configured period
 - Logs the cleanup action itself for audit trail
-- Can be disabled by removing the scheduled event (advanced users)
+- Manual cleanup also available in Settings page
 
 Export logs before they're automatically deleted if you need to retain historical data.
 
@@ -248,6 +300,27 @@ This plugin is licensed under the MIT License. See [LICENSE](LICENSE) file for d
 Created by Barry Schoedel for schoedel.design
 
 ## Changelog
+
+### 1.2.0 - Enhanced Option Filtering and Settings
+
+- **Settings Page**: New admin settings at Settings → Change Log Settings
+- **Enhanced Option Filtering**: Comprehensive exclusion patterns for automated options (asset versions, hit counters, sessions, transients, etc.)
+- **Allowlist Support**: Always log important settings even if they match exclusions
+- **Configurable Cleanup Period**: Adjust auto-delete period (1-365 days, default: 21)
+- **Manual Cleanup**: Run cleanup immediately from settings page
+- **Logging Controls**: Enable/disable logging for each content type (posts, users, plugins, themes, media, menus, widgets, options)
+- **wp_user_roles Control**: Toggle logging of wp_user_roles (reduces noise from plugin updates)
+- **Developer Filters**: `log_changes_should_log_option` and `log_changes_option_exclusions` for custom control
+- **Wildcard Pattern Matching**: Flexible exclusion patterns with `*` wildcard support
+- **Settings Link**: Quick access from Plugins page
+
+### 1.1.0 - Export and Auto-Delete Features
+
+- CSV export functionality with date range filtering
+- Export & Delete feature for archiving and cleanup
+- Automatic cleanup of logs older than 21 days
+- Enhanced security with nonce verification
+- Improved admin UI with export controls
 
 ### 1.0.0 - Initial Release
 

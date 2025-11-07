@@ -3,7 +3,7 @@
  * Plugin Name: Log Changes
  * Plugin URI: https://schoedel.design/log-changes
  * Description: Tracks all changes to your WordPress site including posts, pages, users, plugins, themes, and settings. Records what changed, when, and who made the changes. Includes CSV export and automatic cleanup after 21 days.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Requires at least: 5.0
  * Requires PHP: 7.2
  * Author: Barry Schoedel
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'LOG_CHANGES_VERSION', '1.1.0' );
+define( 'LOG_CHANGES_VERSION', '1.2.0' );
 define( 'LOG_CHANGES_PLUGIN_FILE', __FILE__ );
 define( 'LOG_CHANGES_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOG_CHANGES_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -41,11 +41,35 @@ class Log_Changes {
 	private $table_name;
 
 	/**
+	 * Plugin settings.
+	 *
+	 * @var array
+	 */
+	private $settings;
+
+	/**
+	 * Compiled exclusion patterns for performance.
+	 *
+	 * @var array
+	 */
+	private $exclusion_patterns = array();
+
+	/**
+	 * Allowlist options.
+	 *
+	 * @var array
+	 */
+	private $allowlist_options = array();
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'change_log';
+		
+		// Load settings.
+		$this->load_settings();
 		
 		// Register activation and deactivation hooks.
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
@@ -53,6 +77,61 @@ class Log_Changes {
 		
 		// Initialize plugin.
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Load plugin settings.
+	 */
+	private function load_settings() {
+		// Get settings with defaults.
+		$defaults = array(
+			'log_option_changes'   => 1,
+			'log_wp_user_roles'    => 0,
+			'log_post_changes'     => 1,
+			'log_user_changes'     => 1,
+			'log_plugin_changes'   => 1,
+			'log_theme_changes'    => 1,
+			'log_media_changes'    => 1,
+			'log_menu_changes'     => 1,
+			'log_widget_changes'   => 1,
+			'cleanup_days'         => 21,
+			'option_exclusions'    => '',
+			'option_allowlist'     => '',
+		);
+		
+		$this->settings = wp_parse_args( get_option( 'log_changes_options', array() ), $defaults );
+		
+		// Compile exclusion patterns for performance.
+		$this->compile_patterns();
+	}
+
+	/**
+	 * Compile wildcard patterns into regex for efficient matching.
+	 */
+	private function compile_patterns() {
+		// Process exclusions.
+		if ( ! empty( $this->settings['option_exclusions'] ) ) {
+			$patterns = explode( "\n", $this->settings['option_exclusions'] );
+			foreach ( $patterns as $pattern ) {
+				$pattern = trim( $pattern );
+				if ( ! empty( $pattern ) ) {
+					// Convert wildcard pattern to regex.
+					$regex = '/^' . str_replace( array( '\*', '\?' ), array( '.*', '.' ), preg_quote( $pattern, '/' ) ) . '$/';
+					$this->exclusion_patterns[] = $regex;
+				}
+			}
+		}
+		
+		// Process allowlist.
+		if ( ! empty( $this->settings['option_allowlist'] ) ) {
+			$options = explode( "\n", $this->settings['option_allowlist'] );
+			foreach ( $options as $option ) {
+				$option = trim( $option );
+				if ( ! empty( $option ) ) {
+					$this->allowlist_options[] = $option;
+				}
+			}
+		}
 	}
 
 	/**
@@ -126,6 +205,10 @@ class Log_Changes {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'admin_init', array( $this, 'handle_export_delete_actions' ) );
+		add_filter( 'plugin_action_links_' . LOG_CHANGES_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
+		
+		// Load settings page.
+		require_once LOG_CHANGES_PLUGIN_DIR . 'includes/settings-page.php';
 	}
 
 	/**
@@ -282,6 +365,11 @@ class Log_Changes {
 	 * @param bool    $update Whether this is an update.
 	 */
 	public function track_post_save( $post_id, $post, $update ) {
+		// Check if post tracking is enabled.
+		if ( empty( $this->settings['log_post_changes'] ) ) {
+			return;
+		}
+		
 		// Skip auto-saves and revisions.
 		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
 			return;
@@ -313,6 +401,11 @@ class Log_Changes {
 	 * @param WP_Post $post Post object.
 	 */
 	public function track_post_status( $new_status, $old_status, $post ) {
+		// Check if post tracking is enabled.
+		if ( empty( $this->settings['log_post_changes'] ) ) {
+			return;
+		}
+		
 		// Skip if status hasn't changed.
 		if ( $new_status === $old_status ) {
 			return;
@@ -350,6 +443,11 @@ class Log_Changes {
 	 * @param WP_Post $post Post object.
 	 */
 	public function track_post_delete( $post_id, $post ) {
+		// Check if post tracking is enabled.
+		if ( empty( $this->settings['log_post_changes'] ) ) {
+			return;
+		}
+		
 		$description = sprintf(
 			'Deleted "%s" (ID: %d, Type: %s)',
 			$post->post_title,
@@ -372,6 +470,11 @@ class Log_Changes {
 	 * @param int $user_id User ID.
 	 */
 	public function track_user_register( $user_id ) {
+		// Check if user tracking is enabled.
+		if ( empty( $this->settings['log_user_changes'] ) ) {
+			return;
+		}
+		
 		$user = get_userdata( $user_id );
 		
 		if ( ! $user ) {
@@ -400,6 +503,11 @@ class Log_Changes {
 	 * @param array $old_user_data Old user data.
 	 */
 	public function track_user_update( $user_id, $old_user_data ) {
+		// Check if user tracking is enabled.
+		if ( empty( $this->settings['log_user_changes'] ) ) {
+			return;
+		}
+		
 		$user = get_userdata( $user_id );
 		
 		if ( ! $user ) {
@@ -427,6 +535,11 @@ class Log_Changes {
 	 * @param int $user_id User ID.
 	 */
 	public function track_user_delete( $user_id ) {
+		// Check if user tracking is enabled.
+		if ( empty( $this->settings['log_user_changes'] ) ) {
+			return;
+		}
+		
 		$user = get_userdata( $user_id );
 		$user_login = $user ? $user->user_login : 'Unknown';
 		
@@ -453,6 +566,11 @@ class Log_Changes {
 	 * @param array  $old_roles Old roles.
 	 */
 	public function track_user_role_change( $user_id, $role, $old_roles ) {
+		// Check if user tracking is enabled.
+		if ( empty( $this->settings['log_user_changes'] ) ) {
+			return;
+		}
+		
 		$user = get_userdata( $user_id );
 		
 		if ( ! $user ) {
@@ -488,6 +606,11 @@ class Log_Changes {
 	 * @param WP_Theme $old_theme Old theme object.
 	 */
 	public function track_theme_switch( $new_name, $new_theme, $old_theme ) {
+		// Check if theme tracking is enabled.
+		if ( empty( $this->settings['log_theme_changes'] ) ) {
+			return;
+		}
+		
 		$description = sprintf(
 			'Theme switched from "%s" to "%s"',
 			$old_theme->get( 'Name' ),
@@ -512,6 +635,11 @@ class Log_Changes {
 	 * @param bool   $network_wide Network wide activation.
 	 */
 	public function track_plugin_activated( $plugin, $network_wide ) {
+		// Check if plugin tracking is enabled.
+		if ( empty( $this->settings['log_plugin_changes'] ) ) {
+			return;
+		}
+		
 		$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin, false, false );
 		
 		$description = sprintf(
@@ -536,6 +664,11 @@ class Log_Changes {
 	 * @param bool   $network_wide Network wide deactivation.
 	 */
 	public function track_plugin_deactivated( $plugin, $network_wide ) {
+		// Check if plugin tracking is enabled.
+		if ( empty( $this->settings['log_plugin_changes'] ) ) {
+			return;
+		}
+		
 		$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin, false, false );
 		
 		$description = sprintf(
@@ -559,6 +692,11 @@ class Log_Changes {
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public function track_media_upload( $attachment_id ) {
+		// Check if media tracking is enabled.
+		if ( empty( $this->settings['log_media_changes'] ) ) {
+			return;
+		}
+		
 		$attachment = get_post( $attachment_id );
 		
 		if ( ! $attachment ) {
@@ -587,6 +725,11 @@ class Log_Changes {
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public function track_media_delete( $attachment_id ) {
+		// Check if media tracking is enabled.
+		if ( empty( $this->settings['log_media_changes'] ) ) {
+			return;
+		}
+		
 		$attachment = get_post( $attachment_id );
 		$title = $attachment ? $attachment->post_title : 'Unknown';
 		
@@ -612,6 +755,11 @@ class Log_Changes {
 	 * @param array $menu_data Menu data.
 	 */
 	public function track_menu_create( $menu_id, $menu_data ) {
+		// Check if menu tracking is enabled.
+		if ( empty( $this->settings['log_menu_changes'] ) ) {
+			return;
+		}
+		
 		$menu_name = isset( $menu_data['menu-name'] ) ? $menu_data['menu-name'] : 'Unknown';
 		
 		$description = sprintf(
@@ -636,6 +784,11 @@ class Log_Changes {
 	 * @param array $menu_data Menu data.
 	 */
 	public function track_menu_update( $menu_id, $menu_data ) {
+		// Check if menu tracking is enabled.
+		if ( empty( $this->settings['log_menu_changes'] ) ) {
+			return;
+		}
+		
 		$menu = wp_get_nav_menu_object( $menu_id );
 		$menu_name = $menu ? $menu->name : 'Unknown';
 		
@@ -660,6 +813,11 @@ class Log_Changes {
 	 * @param int $menu_id Menu ID.
 	 */
 	public function track_menu_delete( $menu_id ) {
+		// Check if menu tracking is enabled.
+		if ( empty( $this->settings['log_menu_changes'] ) ) {
+			return;
+		}
+		
 		$menu = wp_get_nav_menu_object( $menu_id );
 		$menu_name = $menu ? $menu->name : 'Unknown';
 		
@@ -688,6 +846,11 @@ class Log_Changes {
 	 * @return array Updated widget instance.
 	 */
 	public function track_widget_update( $instance, $new_instance, $old_instance, $widget ) {
+		// Check if widget tracking is enabled.
+		if ( empty( $this->settings['log_widget_changes'] ) ) {
+			return $instance;
+		}
+		
 		$description = sprintf(
 			'Widget updated: %s (ID: %s)',
 			$widget->name,
@@ -712,8 +875,13 @@ class Log_Changes {
 	 * @param mixed  $value Option value.
 	 */
 	public function track_option_add( $option, $value ) {
+		// Check if option tracking is enabled.
+		if ( empty( $this->settings['log_option_changes'] ) ) {
+			return;
+		}
+		
 		// Skip tracking for transients and internal WordPress options.
-		if ( $this->should_skip_option( $option ) ) {
+		if ( $this->should_skip_option( $option, $value, $value ) ) {
 			return;
 		}
 		
@@ -741,8 +909,13 @@ class Log_Changes {
 	 * @param mixed  $value New value.
 	 */
 	public function track_option_update( $option, $old_value, $value ) {
+		// Check if option tracking is enabled.
+		if ( empty( $this->settings['log_option_changes'] ) ) {
+			return;
+		}
+		
 		// Skip tracking for transients and internal WordPress options.
-		if ( $this->should_skip_option( $option ) ) {
+		if ( $this->should_skip_option( $option, $old_value, $value ) ) {
 			return;
 		}
 		
@@ -768,8 +941,13 @@ class Log_Changes {
 	 * @param string $option Option name.
 	 */
 	public function track_option_delete( $option ) {
+		// Check if option tracking is enabled.
+		if ( empty( $this->settings['log_option_changes'] ) ) {
+			return;
+		}
+		
 		// Skip tracking for transients and internal WordPress options.
-		if ( $this->should_skip_option( $option ) ) {
+		if ( $this->should_skip_option( $option, null, null ) ) {
 			return;
 		}
 		
@@ -791,17 +969,46 @@ class Log_Changes {
 	 * Check if option should be skipped from tracking.
 	 *
 	 * @param string $option Option name.
+	 * @param mixed  $old_value Old value.
+	 * @param mixed  $new_value New value.
 	 * @return bool True if should skip.
 	 */
-	private function should_skip_option( $option ) {
+	private function should_skip_option( $option, $old_value = null, $new_value = null ) {
+		// Check allowlist first - these always log even if they match exclusions.
+		if ( in_array( $option, $this->allowlist_options, true ) ) {
+			// Apply developer filter.
+			return ! apply_filters( 'log_changes_should_log_option', true, $option, $old_value, $new_value );
+		}
+		
+		// Special handling for wp_user_roles based on settings.
+		if ( 'wp_user_roles' === $option && empty( $this->settings['log_wp_user_roles'] ) ) {
+			return true;
+		}
+		
 		// Use regex for efficient pattern matching of frequently-changing options.
-		// Matches: cron, doing_cron, _transient*, _site_transient*
+		// Built-in patterns: cron, doing_cron, _transient*, _site_transient*
 		$skip_pattern = '/^(cron|doing_cron|_transient|_site_transient)/';
 		if ( preg_match( $skip_pattern, $option ) ) {
 			return true;
 		}
 		
-		return false;
+		// Check against compiled exclusion patterns.
+		foreach ( $this->exclusion_patterns as $pattern ) {
+			if ( preg_match( $pattern, $option ) ) {
+				return true;
+			}
+		}
+		
+		// Apply developer filter for additional control.
+		$should_log = apply_filters( 'log_changes_should_log_option', true, $option, $old_value, $new_value );
+		
+		// Also allow developers to add exclusions programmatically.
+		$custom_exclusions = apply_filters( 'log_changes_option_exclusions', array() );
+		if ( is_array( $custom_exclusions ) && in_array( $option, $custom_exclusions, true ) ) {
+			return true;
+		}
+		
+		return ! $should_log;
 	}
 
 	/**
@@ -1081,14 +1288,17 @@ class Log_Changes {
 	}
 	
 	/**
-	 * Automatically cleanup logs older than 21 days.
+	 * Automatically cleanup logs older than configured days.
 	 * This runs daily via WordPress cron.
 	 */
 	public function auto_cleanup_old_logs() {
 		global $wpdb;
 		
-		// Calculate the cutoff date (21 days ago).
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( '-21 days' ) );
+		// Get cleanup period from settings.
+		$cleanup_days = isset( $this->settings['cleanup_days'] ) ? absint( $this->settings['cleanup_days'] ) : 21;
+		
+		// Calculate the cutoff date.
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $cleanup_days . ' days' ) );
 		
 		// Delete old logs.
 		$deleted = $wpdb->query(
@@ -1111,11 +1321,61 @@ class Log_Changes {
 					'object_type'  => 'log',
 					'object_id'    => 0,
 					'object_name'  => 'Automatic Cleanup',
-					'description'  => sprintf( 'Automatically deleted %d log entries older than 21 days', $deleted ),
+					'description'  => sprintf( 'Automatically deleted %d log entries older than %d days', $deleted, $cleanup_days ),
 					'old_value'    => null,
 					'new_value'    => null,
 					'ip_address'   => '',
 					'user_agent'   => 'WordPress Cron',
+				),
+				array( '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
+		
+		return $deleted;
+	}
+
+	/**
+	 * Manually cleanup logs older than configured days.
+	 * Called from settings page.
+	 *
+	 * @return int|false Number of rows deleted or false on failure.
+	 */
+	public function manual_cleanup_old_logs() {
+		global $wpdb;
+		
+		// Get cleanup period from settings.
+		$cleanup_days = isset( $this->settings['cleanup_days'] ) ? absint( $this->settings['cleanup_days'] ) : 21;
+		
+		// Calculate the cutoff date.
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $cleanup_days . ' days' ) );
+		
+		// Delete old logs.
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$this->table_name} WHERE timestamp < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$cutoff_date
+			)
+		);
+		
+		// Log the cleanup action if any logs were deleted.
+		if ( $deleted > 0 ) {
+			// Use direct insert to avoid recursive logging.
+			$current_user = wp_get_current_user();
+			$wpdb->insert(
+				$this->table_name,
+				array(
+					'timestamp'    => current_time( 'mysql' ),
+					'user_id'      => $current_user->ID,
+					'user_login'   => $current_user->user_login,
+					'action_type'  => 'cleanup',
+					'object_type'  => 'log',
+					'object_id'    => 0,
+					'object_name'  => 'Manual Cleanup',
+					'description'  => sprintf( 'Manually deleted %d log entries older than %d days', $deleted, $cleanup_days ),
+					'old_value'    => null,
+					'new_value'    => null,
+					'ip_address'   => $this->get_user_ip(),
+					'user_agent'   => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 ) : '',
 				),
 				array( '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
 			);
@@ -1137,6 +1397,31 @@ class Log_Changes {
 			'dashicons-backup',
 			80
 		);
+		
+		add_submenu_page(
+			'log-changes',
+			__( 'Change Log Settings', 'log-changes' ),
+			__( 'Settings', 'log-changes' ),
+			'manage_options',
+			'log-changes-settings',
+			'log_changes_render_settings_page'
+		);
+	}
+
+	/**
+	 * Add settings link to plugin actions.
+	 *
+	 * @param array $links Plugin action links.
+	 * @return array Modified links.
+	 */
+	public function add_settings_link( $links ) {
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			admin_url( 'admin.php?page=log-changes-settings' ),
+			__( 'Settings', 'log-changes' )
+		);
+		array_unshift( $links, $settings_link );
+		return $links;
 	}
 
 	/**
@@ -1274,5 +1559,5 @@ class Log_Changes {
 	}
 }
 
-// Initialize the plugin.
-new Log_Changes();
+// Initialize the plugin and store global reference for settings page.
+$log_changes_instance = new Log_Changes();
