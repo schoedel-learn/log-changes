@@ -163,6 +163,35 @@
 		if ($('.log-changes-table tbody tr').length > 0) {
 			$('.wrap h1').after('<p class="description">Track all changes to your WordPress site. Use the filters to find specific changes.</p>');
 		}
+		
+		/**
+		 * Handle Export & Delete button.
+		 */
+		$('#export-delete-btn').on('click', function(e) {
+			e.preventDefault();
+			
+			if (!confirm(logChangesL10n.confirmExportDelete)) {
+				return;
+			}
+			
+			// Build export URL with current filters
+			var url = new URL(window.location.href);
+			url.searchParams.set('action', 'export');
+			url.searchParams.set('_wpnonce', logChangesL10n.exportNonce);
+			
+			// Trigger download
+			window.location.href = url.toString();
+			
+			// After a brief delay, redirect to delete
+			setTimeout(function() {
+				var deleteUrl = new URL(window.location.href);
+				deleteUrl.searchParams.set('action', 'delete_exported');
+				deleteUrl.searchParams.set('_wpnonce', logChangesL10n.deleteNonce);
+				deleteUrl.searchParams.delete('deleted');
+				
+				window.location.href = deleteUrl.toString();
+			}, 2000);
+		});
 	});
 	
 })(jQuery);

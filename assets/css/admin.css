@@ -24,8 +24,36 @@
 	min-width: 200px;
 }
 
+.log-changes-filter-row input[type="date"] {
+	min-width: 140px;
+}
+
+.log-changes-filter-row label {
+	font-weight: 500;
+	margin-left: 10px;
+}
+
 .log-changes-filter-row select {
 	min-width: 150px;
+}
+
+.log-changes-export-row {
+	margin-top: 15px;
+	padding-top: 15px;
+	border-top: 1px solid #dcdcde;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.log-changes-export-row .button .dashicons {
+	margin-top: 3px;
+}
+
+.log-changes-export-row .description {
+	color: #646970;
+	font-style: italic;
 }
 
 .log-changes-stats {

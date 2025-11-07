@@ -14,6 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="wrap">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 	
+	<?php
+	// Show success message if logs were deleted.
+	if ( isset( $_GET['deleted'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$deleted_count = absint( $_GET['deleted'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		?>
+		<div class="notice notice-success is-dismissible">
+			<p>
+				<?php
+				/* translators: %d: number of deleted log entries */
+				printf( esc_html( _n( '%d log entry deleted successfully.', '%d log entries deleted successfully.', $deleted_count, 'log-changes-main' ) ), (int) $deleted_count );
+				?>
+			</p>
+		</div>
+	<?php endif; ?>
+	
 	<div class="log-changes-filters">
 		<form method="get" action="">
 			<input type="hidden" name="page" value="log-changes" />
@@ -53,10 +68,54 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endforeach; ?>
 				</select>
 				
+				<label for="date-from"><?php esc_html_e( 'From:', 'log-changes-main' ); ?></label>
+				<input type="date" 
+					name="date_from" 
+					id="date-from" 
+					value="<?php echo isset( $_GET['date_from'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" 
+				/>
+				
+				<label for="date-to"><?php esc_html_e( 'To:', 'log-changes-main' ); ?></label>
+				<input type="date" 
+					name="date_to" 
+					id="date-to" 
+					value="<?php echo isset( $_GET['date_to'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" 
+				/>
+				
 				<input type="submit" class="button" value="<?php esc_attr_e( 'Filter', 'log-changes-main' ); ?>" />
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=log-changes' ) ); ?>" class="button">
 					<?php esc_html_e( 'Reset', 'log-changes-main' ); ?>
 				</a>
+			</div>
+			
+			<div class="log-changes-export-row">
+				<?php
+				$export_url = wp_nonce_url(
+					add_query_arg(
+						array_merge(
+							array( 'action' => 'export' ),
+							array_filter( $_GET, function( $key ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+								return in_array( $key, array( 'page', 'filter_action', 'filter_object', 'filter_user', 'search', 'date_from', 'date_to' ), true );
+							}, ARRAY_FILTER_USE_KEY )
+						),
+						admin_url( 'admin.php' )
+					),
+					'log_changes_export'
+				);
+				?>
+				<a href="<?php echo esc_url( $export_url ); ?>" class="button button-primary">
+					<span class="dashicons dashicons-download" style="margin-top: 3px;"></span>
+					<?php esc_html_e( 'Export to CSV', 'log-changes-main' ); ?>
+				</a>
+				
+				<button type="button" id="export-delete-btn" class="button button-secondary">
+					<span class="dashicons dashicons-trash" style="margin-top: 3px;"></span>
+					<?php esc_html_e( 'Export & Delete', 'log-changes-main' ); ?>
+				</button>
+				
+				<span class="description" style="margin-left: 10px;">
+					<?php esc_html_e( 'Note: Logs older than 21 days are automatically deleted.', 'log-changes-main' ); ?>
+				</span>
 			</div>
 		</form>
 	</div>
