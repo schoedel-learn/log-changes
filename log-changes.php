@@ -231,14 +231,32 @@ class Log_Changes {
 	}
 
 	/**
-	 * Get user IP address.
+	 * Get user IP address with protection against header spoofing.
 	 *
 	 * @return string IP address.
 	 */
 	private function get_user_ip() {
-		$ip_keys = array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' );
+		// For X-Forwarded headers, get the first IP (the client's real IP).
+		// Headers can contain multiple comma-separated IPs: "client, proxy1, proxy2".
+		$forwarded_keys = array( 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED' );
 		
-		foreach ( $ip_keys as $key ) {
+		foreach ( $forwarded_keys as $key ) {
+			if ( isset( $_SERVER[ $key ] ) ) {
+				$forwarded_ips = wp_unslash( $_SERVER[ $key ] );
+				// Split by comma and get the first IP (client IP).
+				$ip_list = array_map( 'trim', explode( ',', $forwarded_ips ) );
+				foreach ( $ip_list as $ip ) {
+					if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+						return sanitize_text_field( $ip );
+					}
+				}
+			}
+		}
+		
+		// Check other headers and REMOTE_ADDR as fallbacks.
+		$direct_keys = array( 'HTTP_CLIENT_IP', 'HTTP_X_CLUSTER_CLIENT_IP', 'REMOTE_ADDR' );
+		
+		foreach ( $direct_keys as $key ) {
 			if ( isset( $_SERVER[ $key ] ) && filter_var( wp_unslash( $_SERVER[ $key ] ), FILTER_VALIDATE_IP ) ) {
 				return sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
 			}

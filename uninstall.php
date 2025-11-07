@@ -16,8 +16,9 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 global $wpdb;
 
 // Delete the change log table.
+// Table name is constructed from wpdb prefix + hardcoded string, safe from injection.
 $table_name = $wpdb->prefix . 'change_log';
-$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS `%s`', $table_name ) ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
 
 // Delete plugin options.
 delete_option( 'log_changes_version' );
@@ -29,8 +30,9 @@ if ( is_multisite() ) {
 	foreach ( $blog_ids as $blog_id ) {
 		switch_to_blog( $blog_id );
 		
+		// Table name is reconstructed for each blog with safe wpdb prefix.
 		$table_name = $wpdb->prefix . 'change_log';
-		$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS `%s`', $table_name ) ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
 		
 		delete_option( 'log_changes_version' );
 		
