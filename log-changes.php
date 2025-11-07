@@ -881,6 +881,7 @@ class Log_Changes {
 		}
 		
 		// Skip tracking for transients and internal WordPress options.
+		// Pass null for old_value since this is a new option (no previous value).
 		if ( $this->should_skip_option( $option, null, $value ) ) {
 			return;
 		}
@@ -938,6 +939,10 @@ class Log_Changes {
 	/**
 	 * Track option deletion.
 	 *
+	 * WordPress deleted_option hook doesn't provide the old value,
+	 * only the option name. The value has already been deleted from
+	 * the database by the time this hook fires.
+	 *
 	 * @param string $option Option name.
 	 */
 	public function track_option_delete( $option ) {
@@ -947,6 +952,7 @@ class Log_Changes {
 		}
 		
 		// Skip tracking for transients and internal WordPress options.
+		// Pass null for both old/new values since WordPress doesn't provide them.
 		if ( $this->should_skip_option( $option, null, null ) ) {
 			return;
 		}
@@ -968,9 +974,14 @@ class Log_Changes {
 	/**
 	 * Check if option should be skipped from tracking.
 	 *
+	 * Note: old_value and new_value may be null depending on the operation:
+	 * - For option_add: old_value is null (no previous value)
+	 * - For option_delete: both values are null (WordPress limitation)
+	 * - For option_update: both values are provided
+	 *
 	 * @param string $option Option name.
-	 * @param mixed  $old_value Old value.
-	 * @param mixed  $new_value New value.
+	 * @param mixed  $old_value Old value (null for add/delete operations).
+	 * @param mixed  $new_value New value (null for delete operations).
 	 * @return bool True if should skip.
 	 */
 	private function should_skip_option( $option, $old_value = null, $new_value = null ) {
