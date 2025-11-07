@@ -785,13 +785,9 @@ class Log_Changes {
 	 * @return bool True if should skip.
 	 */
 	private function should_skip_option( $option ) {
-		// Skip transients using optimized pattern matching.
-		if ( strpos( $option, '_transient' ) === 0 || strpos( $option, '_site_transient' ) === 0 ) {
-			return true;
-		}
-		
-		// Use regex for more efficient pattern matching of frequently-changing options.
-		$skip_pattern = '/^(cron|doing_cron|_site_transient|_transient)/';
+		// Use regex for efficient pattern matching of frequently-changing options.
+		// Matches: cron, doing_cron, _transient*, _site_transient*
+		$skip_pattern = '/^(cron|doing_cron|_transient|_site_transient)/';
 		if ( preg_match( $skip_pattern, $option ) ) {
 			return true;
 		}
