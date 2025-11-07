@@ -166,6 +166,7 @@
 		
 		/**
 		 * Handle Export & Delete button.
+		 * Uses a two-step approach: export first, then show manual delete button.
 		 */
 		$('#export-delete-btn').on('click', function(e) {
 			e.preventDefault();
@@ -179,18 +180,25 @@
 			url.searchParams.set('action', 'export');
 			url.searchParams.set('_wpnonce', logChangesL10n.exportNonce);
 			
-			// Trigger download
-			window.location.href = url.toString();
+			// Create hidden iframe to trigger download without navigation
+			var iframe = $('<iframe>', {
+				src: url.toString(),
+				style: 'display:none;'
+			}).appendTo('body');
 			
-			// After a brief delay, redirect to delete
+			// Show delete confirmation after brief delay
 			setTimeout(function() {
-				var deleteUrl = new URL(window.location.href);
-				deleteUrl.searchParams.set('action', 'delete_exported');
-				deleteUrl.searchParams.set('_wpnonce', logChangesL10n.deleteNonce);
-				deleteUrl.searchParams.delete('deleted');
+				iframe.remove();
 				
-				window.location.href = deleteUrl.toString();
-			}, 2000);
+				if (confirm(logChangesL10n.confirmDelete || 'CSV exported. Do you want to delete these logs from the database now?')) {
+					var deleteUrl = new URL(window.location.href);
+					deleteUrl.searchParams.set('action', 'delete_exported');
+					deleteUrl.searchParams.set('_wpnonce', logChangesL10n.deleteNonce);
+					deleteUrl.searchParams.delete('deleted');
+					
+					window.location.href = deleteUrl.toString();
+				}
+			}, 1500);
 		});
 	});
 	

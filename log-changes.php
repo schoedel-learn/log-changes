@@ -921,13 +921,21 @@ class Log_Changes {
 		
 		// Add date range filter if provided.
 		if ( ! empty( $_GET['date_from'] ) ) {
-			$where_clauses[] = 'timestamp >= %s';
-			$where_values[] = sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) . ' 00:00:00';
+			$date_from = sanitize_text_field( wp_unslash( $_GET['date_from'] ) );
+			// Validate date format (YYYY-MM-DD).
+			if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_from ) ) {
+				$where_clauses[] = 'timestamp >= %s';
+				$where_values[] = $date_from . ' 00:00:00';
+			}
 		}
 		
 		if ( ! empty( $_GET['date_to'] ) ) {
-			$where_clauses[] = 'timestamp <= %s';
-			$where_values[] = sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) . ' 23:59:59';
+			$date_to = sanitize_text_field( wp_unslash( $_GET['date_to'] ) );
+			// Validate date format (YYYY-MM-DD).
+			if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_to ) ) {
+				$where_clauses[] = 'timestamp <= %s';
+				$where_values[] = $date_to . ' 23:59:59';
+			}
 		}
 		
 		return array( $where_clauses, $where_values );
@@ -1021,27 +1029,22 @@ class Log_Changes {
 	public function delete_logs( $where_clauses = array(), $where_values = array() ) {
 		global $wpdb;
 		
-		// Build WHERE clause.
-		$where_sql = '';
-		if ( ! empty( $where_clauses ) ) {
-			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
-		} else {
-			// Require at least one filter to prevent accidental deletion of all logs.
+		// Require at least one filter to prevent accidental deletion of all logs.
+		// Both clauses and values must be present.
+		if ( empty( $where_clauses ) || empty( $where_values ) ) {
 			return false;
 		}
 		
-		// Delete logs.
-		if ( ! empty( $where_values ) ) {
-			// First, get count for return value.
-			$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			
-			// Then delete.
-			$wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			
-			return $count;
-		}
+		// Build WHERE clause.
+		$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 		
-		return false;
+		// First, get count for return value.
+		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		
+		// Then delete.
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		
+		return $count;
 	}
 	
 	/**
@@ -1140,7 +1143,8 @@ class Log_Changes {
 				'logChangesL10n',
 				array(
 					'confirmClearAll'     => __( 'Are you sure you want to clear all logs? This action cannot be undone.', 'log-changes' ),
-					'confirmExportDelete' => __( 'This will export the filtered logs to CSV and then DELETE them from the database. This action cannot be undone. Continue?', 'log-changes' ),
+					'confirmExportDelete' => __( 'This will export the filtered logs to CSV. After the download completes, you\'ll be asked to delete them from the database. Continue?', 'log-changes' ),
+					'confirmDelete'       => __( 'CSV exported. Do you want to delete these logs from the database now? This action cannot be undone.', 'log-changes' ),
 					'loading'             => __( 'Loading...', 'log-changes' ),
 					'showDetails'         => __( 'Show Details', 'log-changes' ),
 					'hideDetails'         => __( 'Hide Details', 'log-changes' ),
