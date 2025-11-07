@@ -423,8 +423,8 @@ function log_changes_sanitize_patterns( $patterns ) {
 			continue;
 		}
 		
-		// Only allow alphanumeric, underscore, dash, asterisk, and slash.
-		$line = preg_replace( '/[^a-zA-Z0-9_\-*\/]/', '', $line );
+		// Only allow alphanumeric, underscore, dash, and asterisk.
+		$line = preg_replace( '/[^a-zA-Z0-9_\-*]/', '', $line );
 		
 		if ( ! empty( $line ) ) {
 			$sanitized[] = $line;

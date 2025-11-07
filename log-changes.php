@@ -115,8 +115,8 @@ class Log_Changes {
 			foreach ( $patterns as $pattern ) {
 				$pattern = trim( $pattern );
 				if ( ! empty( $pattern ) ) {
-					// Convert wildcard pattern to regex.
-					$regex = '/^' . str_replace( array( '\*', '\?' ), array( '.*', '.' ), preg_quote( $pattern, '/' ) ) . '$/';
+					// Convert wildcard pattern to regex. Only * is supported (? is removed by sanitization).
+					$regex = '/^' . str_replace( '\*', '.*', preg_quote( $pattern, '/' ) ) . '$/';
 					$this->exclusion_patterns[] = $regex;
 				}
 			}
@@ -881,7 +881,7 @@ class Log_Changes {
 		}
 		
 		// Skip tracking for transients and internal WordPress options.
-		if ( $this->should_skip_option( $option, $value, $value ) ) {
+		if ( $this->should_skip_option( $option, null, $value ) ) {
 			return;
 		}
 		
