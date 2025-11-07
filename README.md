@@ -1,2 +1,221 @@
-# log-changes
-for logging changes on WordPress sites with multiple admins
+# Log Changes - WordPress Plugin
+
+A comprehensive WordPress plugin for tracking all changes to your site with detailed information about what changed, when, and who made the changes.
+
+## Description
+
+Log Changes is designed for WordPress sites with multiple administrators who need detailed audit trails. Unlike simpler logging plugins, this captures comprehensive information including old and new values, making it perfect for accountability and troubleshooting.
+
+## Features
+
+### Comprehensive Tracking
+
+- **Posts & Pages**: Create, update, delete, and status changes
+- **Users**: Registration, profile updates, deletions, and role changes
+- **Plugins**: Activation, deactivation, installation, and deletion
+- **Themes**: Theme switches and activations
+- **Media**: Uploads and deletions with file type information
+- **Menus**: Navigation menu creation, updates, and deletions
+- **Widgets**: Widget updates and changes
+- **Settings**: WordPress options and settings changes
+
+### Detailed Information
+
+Each change log entry includes:
+- Timestamp (when the change occurred)
+- User information (who made the change)
+- Action type (created, updated, deleted, etc.)
+- Object type (post, user, plugin, etc.)
+- Object name and ID
+- Detailed description
+- **Old and new values** (for updates and changes)
+- IP address
+- User agent (browser information)
+
+### Smart Detection
+
+- Automatically identifies user-initiated changes
+- Detects automated changes (WP-Cron, WP-CLI)
+- Skips transients and frequently-changing temporary data
+- Prevents log bloat from automated processes
+
+### User-Friendly Interface
+
+- Clean, organized admin interface
+- Advanced filtering by action type, object type, and user
+- Search functionality across descriptions and object names
+- Pagination for large log sets
+- Expandable details view for old/new values
+- Clickable badges for quick filtering
+
+## Installation
+
+### Standard Installation
+
+1. Download the plugin files
+2. Upload the `log-changes` folder to `/wp-content/plugins/`
+3. Activate the plugin through the WordPress admin Plugins menu
+4. Access logs via the "Change Log" menu item
+
+### Development Installation
+
+```bash
+cd /wp-content/plugins/
+git clone https://github.com/schoedel-learn/log-changes.git
+cd log-changes
+```
+
+Then activate through WordPress admin.
+
+## Usage
+
+### Viewing Logs
+
+Navigate to **Change Log** in the WordPress admin menu to view all tracked changes.
+
+### Filtering Logs
+
+Use the filter dropdowns to narrow results by:
+- Action type (created, updated, deleted, etc.)
+- Object type (post, user, plugin, etc.)
+- User (who made the change)
+- Search terms (in descriptions and object names)
+
+### Viewing Details
+
+Click "Show Details" on any log entry to see:
+- Old and new values for changes
+- IP address of the requester
+- User agent information
+
+## Requirements
+
+- WordPress 5.0 or higher
+- PHP 7.2 or higher
+- MySQL 5.6 or higher / MariaDB 10.0 or higher
+
+## Compatibility
+
+Tested with:
+- WordPress 6.8+
+- PHP 8.2+
+- MariaDB 11.8+
+
+Works with:
+- Multisite installations
+- All standard WordPress post types
+- Custom post types
+- WooCommerce and other e-commerce plugins
+- Membership plugins
+- Form plugins
+
+## Database
+
+The plugin creates a single custom table `{prefix}_change_log` with the following structure:
+
+- `id` - Unique identifier
+- `timestamp` - When the change occurred
+- `user_id` - WordPress user ID (if applicable)
+- `user_login` - Username or system identifier
+- `action_type` - Type of action performed
+- `object_type` - Type of object changed
+- `object_id` - ID of the object
+- `object_name` - Name of the object
+- `description` - Human-readable description
+- `old_value` - Previous value (JSON for complex data)
+- `new_value` - New value (JSON for complex data)
+- `ip_address` - IP address of requester
+- `user_agent` - Browser/client information
+
+## Privacy
+
+All data is stored locally in your WordPress database. No data is sent to external services. The plugin logs:
+
+- User actions and identifiers
+- IP addresses
+- User agent strings
+- Content changes
+
+Ensure your privacy policy discloses this tracking if required by your jurisdiction.
+
+## Uninstallation
+
+When you delete the plugin through WordPress admin, it will:
+1. Remove the custom database table
+2. Delete all stored logs
+3. Remove all plugin options
+
+This ensures a clean removal with no leftover data.
+
+## Performance
+
+The plugin is optimized for minimal performance impact:
+- Efficient database queries with proper indexing
+- Automatic exclusion of transients and temporary data
+- Batch operations where appropriate
+- Minimal memory footprint
+
+## Development
+
+### File Structure
+
+```
+log-changes/
+├── log-changes.php          # Main plugin file
+├── includes/
+│   └── admin-page.php       # Admin interface template
+├── assets/
+│   ├── css/
+│   │   └── admin.css        # Admin styles
+│   └── js/
+│       └── admin.js         # Admin JavaScript
+├── uninstall.php            # Clean uninstall script
+├── readme.txt               # WordPress.org readme
+├── README.md                # This file
+└── LICENSE                  # MIT License
+```
+
+### Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+### Coding Standards
+
+This plugin follows:
+- WordPress Coding Standards
+- WordPress Plugin Best Practices
+- WordPress Security Best Practices
+- PHPCS with WordPress ruleset
+
+## Support
+
+For issues, questions, or feature requests:
+- GitHub Issues: https://github.com/schoedel-learn/log-changes/issues
+- Website: https://schoedel.design/support
+
+## License
+
+This plugin is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+
+## Credits
+
+Created by Barry Schoedel for schoedel.design
+
+## Changelog
+
+### 1.0.0 - Initial Release
+
+- Complete change tracking for posts, pages, users, plugins, themes, media, menus, widgets, and settings
+- Detailed logging with old/new values
+- Advanced filtering and search
+- Clean admin interface
+- Smart detection of automated vs. user changes
+- Proper security measures (nonces, capability checks)
+- Clean uninstall process
+- Full WordPress coding standards compliance

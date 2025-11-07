@@ -1,0 +1,255 @@
+/**
+ * Admin styles for Log Changes plugin.
+ *
+ * @package LogChanges
+ */
+
+.log-changes-filters {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 15px;
+	margin: 20px 0;
+	border-radius: 4px;
+}
+
+.log-changes-filter-row {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.log-changes-filter-row input[type="text"] {
+	flex: 1;
+	min-width: 200px;
+}
+
+.log-changes-filter-row select {
+	min-width: 150px;
+}
+
+.log-changes-stats {
+	margin: 15px 0;
+	font-size: 14px;
+	color: #646970;
+}
+
+.log-changes-table {
+	margin-top: 20px;
+}
+
+.log-changes-table .column-timestamp {
+	width: 180px;
+}
+
+.log-changes-table .column-user {
+	width: 150px;
+}
+
+.log-changes-table .column-action {
+	width: 120px;
+}
+
+.log-changes-table .column-object {
+	width: 120px;
+}
+
+.log-changes-table .column-description {
+	width: auto;
+}
+
+.action-badge,
+.object-badge {
+	display: inline-block;
+	padding: 3px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* Action type colors */
+.action-badge.action-created,
+.action-badge.action-added,
+.action-badge.action-uploaded,
+.action-badge.action-activated {
+	background-color: #d4edda;
+	color: #155724;
+}
+
+.action-badge.action-updated,
+.action-badge.action-switched,
+.action-badge.action-status_changed,
+.action-badge.action-role_changed {
+	background-color: #d1ecf1;
+	color: #0c5460;
+}
+
+.action-badge.action-deleted,
+.action-badge.action-deactivated {
+	background-color: #f8d7da;
+	color: #721c24;
+}
+
+/* Object type colors */
+.object-badge.object-post {
+	background-color: #e7f3ff;
+	color: #004085;
+}
+
+.object-badge.object-user {
+	background-color: #fff3cd;
+	color: #856404;
+}
+
+.object-badge.object-plugin,
+.object-badge.object-theme {
+	background-color: #f0e5ff;
+	color: #4a1f7a;
+}
+
+.object-badge.object-media {
+	background-color: #ffe5f0;
+	color: #7a1f4a;
+}
+
+.object-badge.object-menu,
+.object-badge.object-widget {
+	background-color: #e5f7ff;
+	color: #1f4a7a;
+}
+
+.object-badge.object-option {
+	background-color: #fff5e5;
+	color: #7a4a1f;
+}
+
+.log-details {
+	margin-top: 10px;
+}
+
+.log-details-content {
+	margin-top: 10px;
+	padding: 15px;
+	background-color: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.log-details-content > div {
+	margin-bottom: 15px;
+}
+
+.log-details-content > div:last-child {
+	margin-bottom: 0;
+}
+
+.log-details-content strong {
+	display: block;
+	margin-bottom: 5px;
+	color: #1d2327;
+}
+
+.log-details-content pre {
+	background-color: #fff;
+	border: 1px solid #dcdcde;
+	padding: 10px;
+	border-radius: 3px;
+	overflow-x: auto;
+	font-size: 12px;
+	line-height: 1.5;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.log-details-content .old-value pre {
+	background-color: #fff5f5;
+	border-color: #e5c1c1;
+}
+
+.log-details-content .new-value pre {
+	background-color: #f0fff4;
+	border-color: #c1e5c1;
+}
+
+.toggle-details {
+	font-size: 12px;
+	height: auto;
+	line-height: 1.5;
+	padding: 2px 8px;
+}
+
+.description-text {
+	margin-bottom: 5px;
+}
+
+/* Responsive design */
+@media screen and (max-width: 782px) {
+	.log-changes-filter-row {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	
+	.log-changes-filter-row input[type="text"],
+	.log-changes-filter-row select {
+		width: 100%;
+		min-width: 0;
+	}
+	
+	.log-changes-table .column-timestamp,
+	.log-changes-table .column-user,
+	.log-changes-table .column-action,
+	.log-changes-table .column-object {
+		display: none;
+	}
+	
+	.log-changes-table td {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+	}
+	
+	.log-changes-table td:before {
+		content: attr(data-label);
+		font-weight: 600;
+		display: inline-block;
+		margin-right: 10px;
+	}
+}
+
+/* Pagination styles */
+.tablenav-pages {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.tablenav-pages .displaying-num {
+	margin-right: 10px;
+}
+
+.tablenav-pages .pagination-links {
+	display: flex;
+	gap: 5px;
+}
+
+.tablenav-pages .pagination-links a,
+.tablenav-pages .pagination-links span.current {
+	padding: 5px 10px;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	text-decoration: none;
+	min-width: 30px;
+	text-align: center;
+}
+
+.tablenav-pages .pagination-links a:hover {
+	background-color: #f0f0f1;
+}
+
+.tablenav-pages .pagination-links span.current {
+	background-color: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+}
