@@ -7,6 +7,9 @@
 (function($) {
 	'use strict';
 	
+	// Constants
+	var EXPORT_TIMEOUT_MS = 3000; // Fallback timeout for iframe export detection
+	
 	$(document).ready(function() {
 		/**
 		 * Toggle log details visibility.
@@ -218,7 +221,7 @@
 			iframe.on('load error', loadHandler);
 			
 			// Fallback timeout in case load event doesn't fire (e.g., same-origin issues)
-			timeout = setTimeout(loadHandler, 3000);
+			timeout = setTimeout(loadHandler, EXPORT_TIMEOUT_MS);
 		});
 	});
 	

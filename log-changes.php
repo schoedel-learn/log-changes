@@ -974,8 +974,11 @@ class Log_Changes {
 		
 		// Set headers for CSV download.
 		if ( ! headers_sent() ) {
+			$timestamp = gmdate( 'Y-m-d-H-i-s' );
+			$filename = sprintf( 'change-logs-%s.csv', sanitize_file_name( $timestamp ) );
+			
 			header( 'Content-Type: text/csv; charset=utf-8' );
-			header( 'Content-Disposition: attachment; filename=change-logs-' . gmdate( 'Y-m-d-H-i-s' ) . '.csv' );
+			header( 'Content-Disposition: attachment; filename=' . $filename );
 			header( 'Pragma: no-cache' );
 			header( 'Expires: 0' );
 		}
