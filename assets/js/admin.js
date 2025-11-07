@@ -180,16 +180,30 @@
 			url.searchParams.set('action', 'export');
 			url.searchParams.set('_wpnonce', logChangesL10n.exportNonce);
 			
+			// Show loading state
+			var $button = $(this);
+			var originalText = $button.text();
+			$button.prop('disabled', true).text(logChangesL10n.loading || 'Exporting...');
+			
 			// Create hidden iframe to trigger download without navigation
 			var iframe = $('<iframe>', {
 				src: url.toString(),
 				style: 'display:none;'
 			}).appendTo('body');
 			
-			// Show delete confirmation after brief delay
-			setTimeout(function() {
+			// Monitor iframe load to detect when export is complete
+			var timeout;
+			var loadHandler = function() {
+				clearTimeout(timeout);
+				
+				// Remove iframe
+				iframe.off('load error', loadHandler);
 				iframe.remove();
 				
+				// Restore button state
+				$button.prop('disabled', false).text(originalText);
+				
+				// Show delete confirmation
 				if (confirm(logChangesL10n.confirmDelete || 'CSV exported. Do you want to delete these logs from the database now?')) {
 					var deleteUrl = new URL(window.location.href);
 					deleteUrl.searchParams.set('action', 'delete_exported');
@@ -198,7 +212,13 @@
 					
 					window.location.href = deleteUrl.toString();
 				}
-			}, 1500);
+			};
+			
+			// Handle both load and error events
+			iframe.on('load error', loadHandler);
+			
+			// Fallback timeout in case load event doesn't fire (e.g., same-origin issues)
+			timeout = setTimeout(loadHandler, 3000);
 		});
 	});
 	

@@ -956,25 +956,36 @@ class Log_Changes {
 			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 		}
 		
-		// Get logs based on filters.
+		// First, check count to prevent memory issues with large datasets.
 		if ( ! empty( $where_values ) ) {
-			$logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$this->table_name} {$where_sql} ORDER BY timestamp DESC", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->table_name} {$where_sql}", $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		} else {
-			$logs = $wpdb->get_results( "SELECT * FROM {$this->table_name} ORDER BY timestamp DESC" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		}
 		
-		if ( empty( $logs ) ) {
-			return false;
+		if ( $count === 0 ) {
+			wp_die( esc_html__( 'No logs to export.', 'log-changes' ) );
+		}
+		
+		// Warn if exporting a very large number of logs.
+		if ( $count > 50000 ) {
+			wp_die( esc_html__( 'Too many logs to export at once (limit: 50,000). Please use date range filters to narrow your selection.', 'log-changes' ) );
 		}
 		
 		// Set headers for CSV download.
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename=change-logs-' . gmdate( 'Y-m-d-H-i-s' ) . '.csv' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
+		if ( ! headers_sent() ) {
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=change-logs-' . gmdate( 'Y-m-d-H-i-s' ) . '.csv' );
+			header( 'Pragma: no-cache' );
+			header( 'Expires: 0' );
+		}
 		
 		// Open output stream.
 		$output = fopen( 'php://output', 'w' );
+		
+		if ( false === $output ) {
+			wp_die( esc_html__( 'Unable to create export file. Please try again.', 'log-changes' ) );
+		}
 		
 		// Add UTF-8 BOM for Excel compatibility.
 		fprintf( $output, chr(0xEF) . chr(0xBB) . chr(0xBF) );
@@ -996,23 +1007,42 @@ class Log_Changes {
 			'User Agent',
 		) );
 		
-		// Add data rows.
-		foreach ( $logs as $log ) {
-			fputcsv( $output, array(
-				$log->id,
-				$log->timestamp,
-				$log->user_id,
-				$log->user_login,
-				$log->action_type,
-				$log->object_type,
-				$log->object_id,
-				$log->object_name,
-				$log->description,
-				$log->old_value,
-				$log->new_value,
-				$log->ip_address,
-				$log->user_agent,
-			) );
+		// Process in chunks to avoid memory issues.
+		$chunk_size = 1000;
+		$offset = 0;
+		
+		while ( $offset < $count ) {
+			// Get logs in chunks.
+			if ( ! empty( $where_values ) ) {
+				$chunk_values = array_merge( $where_values, array( $chunk_size, $offset ) );
+				$logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$this->table_name} {$where_sql} ORDER BY timestamp DESC LIMIT %d OFFSET %d", $chunk_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			} else {
+				$logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$this->table_name} ORDER BY timestamp DESC LIMIT %d OFFSET %d", $chunk_size, $offset ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			}
+			
+			// Add data rows.
+			foreach ( $logs as $log ) {
+				fputcsv( $output, array(
+					$log->id,
+					$log->timestamp,
+					$log->user_id,
+					$log->user_login,
+					$log->action_type,
+					$log->object_type,
+					$log->object_id,
+					$log->object_name,
+					$log->description,
+					$log->old_value,
+					$log->new_value,
+					$log->ip_address,
+					$log->user_agent,
+				) );
+			}
+			
+			$offset += $chunk_size;
+			
+			// Clear memory.
+			unset( $logs );
 		}
 		
 		fclose( $output );
