@@ -67,11 +67,27 @@
 			var regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
 			
 			$('.description-text').each(function() {
-				var text = $(this).text();
-				var highlightedText = text.replace(regex, '<mark>$1</mark>');
+				var element = $(this);
+				var text = element.text();
 				
-				if (text !== highlightedText) {
-					$(this).html(highlightedText);
+				// Split text by the search term while preserving case
+				var parts = text.split(regex);
+				
+				if (parts.length > 1) {
+					// Clear the element
+					element.empty();
+					
+					// Rebuild with mark tags around matches
+					for (var i = 0; i < parts.length; i++) {
+						if (i % 2 === 0) {
+							// Non-matching text
+							element.append(document.createTextNode(parts[i]));
+						} else {
+							// Matching text - wrap in mark tag
+							var mark = $('<mark>').text(parts[i]);
+							element.append(mark);
+						}
+					}
 				}
 			});
 		}
