@@ -817,20 +817,38 @@ class Log_Changes {
 			return;
 		}
 		
-		wp_enqueue_style(
-			'log-changes-admin',
-			LOG_CHANGES_PLUGIN_URL . 'assets/css/admin.css',
-			array(),
-			LOG_CHANGES_VERSION
-		);
+		$css_file = LOG_CHANGES_PLUGIN_DIR . 'assets/css/admin.css';
+		if ( file_exists( $css_file ) ) {
+			wp_enqueue_style(
+				'log-changes-admin',
+				LOG_CHANGES_PLUGIN_URL . 'assets/css/admin.css',
+				array(),
+				LOG_CHANGES_VERSION
+			);
+		}
 		
-		wp_enqueue_script(
-			'log-changes-admin',
-			LOG_CHANGES_PLUGIN_URL . 'assets/js/admin.js',
-			array( 'jquery' ),
-			LOG_CHANGES_VERSION,
-			true
-		);
+		$js_file = LOG_CHANGES_PLUGIN_DIR . 'assets/js/admin.js';
+		if ( file_exists( $js_file ) ) {
+			wp_enqueue_script(
+				'log-changes-admin',
+				LOG_CHANGES_PLUGIN_URL . 'assets/js/admin.js',
+				array( 'jquery' ),
+				LOG_CHANGES_VERSION,
+				true
+			);
+			
+			// Localize script for translations.
+			wp_localize_script(
+				'log-changes-admin',
+				'logChangesL10n',
+				array(
+					'confirmClearAll' => __( 'Are you sure you want to clear all logs? This action cannot be undone.', 'log-changes' ),
+					'loading'         => __( 'Loading...', 'log-changes' ),
+					'showDetails'     => __( 'Show Details', 'log-changes' ),
+					'hideDetails'     => __( 'Hide Details', 'log-changes' ),
+				)
+			);
+		}
 	}
 
 	/**
@@ -905,7 +923,12 @@ class Log_Changes {
 		$users = $wpdb->get_results( "SELECT DISTINCT user_id, user_login FROM {$this->table_name} WHERE user_id IS NOT NULL ORDER BY user_login" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		
 		// Include the admin template.
-		include LOG_CHANGES_PLUGIN_DIR . 'includes/admin-page.php';
+		$template_file = LOG_CHANGES_PLUGIN_DIR . 'includes/admin-page.php';
+		if ( file_exists( $template_file ) ) {
+			include $template_file;
+		} else {
+			wp_die( esc_html__( 'Admin template file not found.', 'log-changes' ) );
+		}
 	}
 }
 

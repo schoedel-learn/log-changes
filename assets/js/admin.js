@@ -19,10 +19,10 @@
 			
 			if (detailsDiv.is(':visible')) {
 				detailsDiv.slideUp(200);
-				$(this).text($(this).data('show-text') || 'Show Details');
+				$(this).text(logChangesL10n.showDetails || 'Show Details');
 			} else {
 				detailsDiv.slideDown(200);
-				$(this).text($(this).data('hide-text') || 'Hide Details');
+				$(this).text(logChangesL10n.hideDetails || 'Hide Details');
 			}
 		});
 		
@@ -47,7 +47,7 @@
 		 */
 		$('.log-changes-filters form').on('submit', function() {
 			var submitButton = $(this).find('input[type="submit"]');
-			submitButton.prop('disabled', true).val('Loading...');
+			submitButton.prop('disabled', true).val(logChangesL10n.loading || 'Loading...');
 		});
 		
 		/**
@@ -125,7 +125,7 @@
 		 * Confirm before clearing all logs (if we add this feature).
 		 */
 		$('.clear-all-logs').on('click', function(e) {
-			if (!confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+			if (!confirm(logChangesL10n.confirmClearAll || 'Are you sure you want to clear all logs? This action cannot be undone.')) {
 				e.preventDefault();
 			}
 		});
