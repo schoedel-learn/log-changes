@@ -7,10 +7,15 @@ on:
     branches: [ "main", "develop" ]
   workflow_dispatch:
 
+# Declare default permissions as read only
+permissions: read-all
+
 jobs:
   php-unit-tests:
     name: PHP Unit Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     strategy:
       matrix:

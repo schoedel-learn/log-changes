@@ -7,10 +7,15 @@ on:
     branches: [ "main", "develop" ]
   workflow_dispatch:
 
+# Declare default permissions as read only
+permissions: read-all
+
 jobs:
   php-lint:
     name: PHP Syntax Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     strategy:
       matrix:
@@ -33,6 +38,8 @@ jobs:
   phpcs:
     name: WordPress Coding Standards
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
