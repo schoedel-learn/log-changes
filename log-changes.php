@@ -173,8 +173,14 @@ class Log_Changes {
 		add_action( 'delete_user', array( $this, 'track_user_delete' ), 10, 1 );
 		add_action( 'set_user_role', array( $this, 'track_user_role_change' ), 10, 3 );
 		
+		// Track login/logout.
+		add_action( 'wp_login', array( $this, 'track_user_login' ), 10, 2 );
+		add_action( 'wp_logout', array( $this, 'track_user_logout' ), 10, 1 );
+		add_action( 'wp_login_failed', array( $this, 'track_login_failed' ), 10, 2 );
+		
 		// Track theme changes.
 		add_action( 'switch_theme', array( $this, 'track_theme_switch' ), 10, 3 );
+		add_action( 'upgrader_process_complete', array( $this, 'track_upgrader_process' ), 10, 2 );
 		
 		// Track plugin changes.
 		add_action( 'activated_plugin', array( $this, 'track_plugin_activated' ), 10, 2 );
@@ -192,10 +198,22 @@ class Log_Changes {
 		// Track widget changes.
 		add_filter( 'widget_update_callback', array( $this, 'track_widget_update' ), 10, 4 );
 		
+		// Track customizer changes.
+		add_action( 'customize_save_after', array( $this, 'track_customizer_save' ), 10, 1 );
+		
 		// Track option changes.
 		add_action( 'updated_option', array( $this, 'track_option_update' ), 10, 3 );
 		add_action( 'added_option', array( $this, 'track_option_add' ), 10, 2 );
 		add_action( 'deleted_option', array( $this, 'track_option_delete' ), 10, 1 );
+		
+		// Track WooCommerce if active.
+		$this->init_woocommerce_hooks();
+		
+		// Track Fluent plugins if active.
+		$this->init_fluent_hooks();
+		
+		// Track other plugin-specific hooks.
+		$this->init_plugin_specific_hooks();
 	}
 
 	/**
@@ -1020,6 +1038,810 @@ class Log_Changes {
 		}
 		
 		return ! $should_log;
+	}
+
+	/**
+	 * Track successful user login.
+	 *
+	 * @param string  $user_login Username.
+	 * @param WP_User $user User object.
+	 */
+	public function track_user_login( $user_login, $user ) {
+		$description = sprintf(
+			'User logged in: %s (ID: %d)',
+			$user_login,
+			$user->ID
+		);
+		
+		// Use special logging for login events (bypasses user check).
+		$this->log_login_event(
+			'login',
+			'user',
+			$user->ID,
+			$user_login,
+			$description,
+			$user->ID
+		);
+	}
+
+	/**
+	 * Track user logout.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public function track_user_logout( $user_id ) {
+		$user = get_userdata( $user_id );
+		
+		if ( ! $user ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'User logged out: %s (ID: %d)',
+			$user->user_login,
+			$user_id
+		);
+		
+		$this->log_change(
+			'logout',
+			'user',
+			$user_id,
+			$user->user_login,
+			$description
+		);
+	}
+
+	/**
+	 * Track failed login attempts.
+	 *
+	 * @param string   $username Username or email.
+	 * @param WP_Error $error Error object.
+	 */
+	public function track_login_failed( $username, $error ) {
+		$description = sprintf(
+			'Failed login attempt for: %s (Error: %s)',
+			$username,
+			$error->get_error_message()
+		);
+		
+		// Log failed logins without requiring a logged-in user.
+		$this->log_login_event(
+			'login_failed',
+			'user',
+			0,
+			$username,
+			$description,
+			0
+		);
+	}
+
+	/**
+	 * Log login/logout events (special handling without user requirement).
+	 *
+	 * @param string $action_type Type of action.
+	 * @param string $object_type Type of object.
+	 * @param int    $object_id ID of the object.
+	 * @param string $object_name Name of the object.
+	 * @param string $description Description of the change.
+	 * @param int    $user_id User ID for the log entry.
+	 */
+	private function log_login_event( $action_type, $object_type, $object_id, $object_name, $description, $user_id ) {
+		global $wpdb;
+		
+		$ip_address = $this->get_user_ip();
+		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 ) : '';
+		
+		$wpdb->insert(
+			$this->table_name,
+			array(
+				'timestamp'    => current_time( 'mysql' ),
+				'user_id'      => $user_id ? $user_id : null,
+				'user_login'   => $object_name,
+				'action_type'  => $action_type,
+				'object_type'  => $object_type,
+				'object_id'    => $object_id,
+				'object_name'  => $object_name,
+				'description'  => $description,
+				'old_value'    => null,
+				'new_value'    => null,
+				'ip_address'   => $ip_address,
+				'user_agent'   => $user_agent,
+			),
+			array( '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	/**
+	 * Track plugin and theme updates.
+	 *
+	 * @param WP_Upgrader $upgrader Upgrader instance.
+	 * @param array       $options Update options.
+	 */
+	public function track_upgrader_process( $upgrader, $options ) {
+		// Only log if there's a user logged in.
+		$current_user = wp_get_current_user();
+		if ( ! $current_user->ID ) {
+			return;
+		}
+		
+		// Track plugin updates.
+		if ( isset( $options['type'] ) && 'plugin' === $options['type'] ) {
+			if ( isset( $options['action'] ) && 'update' === $options['action'] ) {
+				if ( isset( $options['plugins'] ) && is_array( $options['plugins'] ) ) {
+					foreach ( $options['plugins'] as $plugin ) {
+						$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin, false, false );
+						$description = sprintf(
+							'Plugin updated: %s to version %s',
+							$plugin_data['Name'],
+							$plugin_data['Version']
+						);
+						
+						$this->log_change(
+							'updated',
+							'plugin',
+							0,
+							$plugin_data['Name'],
+							$description
+						);
+					}
+				}
+			}
+		}
+		
+		// Track theme updates.
+		if ( isset( $options['type'] ) && 'theme' === $options['type'] ) {
+			if ( isset( $options['action'] ) && 'update' === $options['action'] ) {
+				if ( isset( $options['themes'] ) && is_array( $options['themes'] ) ) {
+					foreach ( $options['themes'] as $theme ) {
+						$theme_obj = wp_get_theme( $theme );
+						$description = sprintf(
+							'Theme updated: %s to version %s',
+							$theme_obj->get( 'Name' ),
+							$theme_obj->get( 'Version' )
+						);
+						
+						$this->log_change(
+							'updated',
+							'theme',
+							0,
+							$theme_obj->get( 'Name' ),
+							$description
+						);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Track customizer changes.
+	 *
+	 * @param WP_Customize_Manager $wp_customize Customizer instance.
+	 */
+	public function track_customizer_save( $wp_customize ) {
+		$description = 'Customizer settings saved';
+		
+		$this->log_change(
+			'customizer_save',
+			'customizer',
+			0,
+			'Customizer',
+			$description
+		);
+	}
+
+	/**
+	 * Initialize WooCommerce tracking hooks.
+	 */
+	private function init_woocommerce_hooks() {
+		// Check if WooCommerce is active.
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return;
+		}
+		
+		// Track product changes.
+		add_action( 'woocommerce_new_product', array( $this, 'track_wc_product_created' ), 10, 1 );
+		add_action( 'woocommerce_update_product', array( $this, 'track_wc_product_updated' ), 10, 1 );
+		add_action( 'woocommerce_before_delete_product', array( $this, 'track_wc_product_deleted' ), 10, 1 );
+		
+		// Track order changes (purchases and returns).
+		add_action( 'woocommerce_new_order', array( $this, 'track_wc_order_created' ), 10, 1 );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'track_wc_order_status_changed' ), 10, 4 );
+	}
+
+	/**
+	 * Track WooCommerce product creation.
+	 *
+	 * @param int $product_id Product ID.
+	 */
+	public function track_wc_product_created( $product_id ) {
+		$product = wc_get_product( $product_id );
+		
+		if ( ! $product ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'WooCommerce product created: %s (ID: %d, Type: %s)',
+			$product->get_name(),
+			$product_id,
+			$product->get_type()
+		);
+		
+		$this->log_change(
+			'created',
+			'wc_product',
+			$product_id,
+			$product->get_name(),
+			$description
+		);
+	}
+
+	/**
+	 * Track WooCommerce product update.
+	 *
+	 * @param int $product_id Product ID.
+	 */
+	public function track_wc_product_updated( $product_id ) {
+		$product = wc_get_product( $product_id );
+		
+		if ( ! $product ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'WooCommerce product updated: %s (ID: %d, Type: %s)',
+			$product->get_name(),
+			$product_id,
+			$product->get_type()
+		);
+		
+		$this->log_change(
+			'updated',
+			'wc_product',
+			$product_id,
+			$product->get_name(),
+			$description
+		);
+	}
+
+	/**
+	 * Track WooCommerce product deletion.
+	 *
+	 * @param int $product_id Product ID.
+	 */
+	public function track_wc_product_deleted( $product_id ) {
+		$product = wc_get_product( $product_id );
+		$product_name = $product ? $product->get_name() : 'Unknown';
+		
+		$description = sprintf(
+			'WooCommerce product deleted: %s (ID: %d)',
+			$product_name,
+			$product_id
+		);
+		
+		$this->log_change(
+			'deleted',
+			'wc_product',
+			$product_id,
+			$product_name,
+			$description
+		);
+	}
+
+	/**
+	 * Track WooCommerce order creation.
+	 *
+	 * @param int $order_id Order ID.
+	 */
+	public function track_wc_order_created( $order_id ) {
+		$order = wc_get_order( $order_id );
+		
+		if ( ! $order ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'WooCommerce order created: Order #%d (Total: %s, Status: %s)',
+			$order_id,
+			$order->get_formatted_order_total(),
+			$order->get_status()
+		);
+		
+		$this->log_change(
+			'created',
+			'wc_order',
+			$order_id,
+			'Order #' . $order_id,
+			$description
+		);
+	}
+
+	/**
+	 * Track WooCommerce order status changes.
+	 *
+	 * @param int    $order_id Order ID.
+	 * @param string $old_status Old status.
+	 * @param string $new_status New status.
+	 * @param object $order Order object.
+	 */
+	public function track_wc_order_status_changed( $order_id, $old_status, $new_status, $order ) {
+		$description = sprintf(
+			'WooCommerce order status changed: Order #%d from "%s" to "%s" (Total: %s)',
+			$order_id,
+			$old_status,
+			$new_status,
+			$order->get_formatted_order_total()
+		);
+		
+		$this->log_change(
+			'status_changed',
+			'wc_order',
+			$order_id,
+			'Order #' . $order_id,
+			$description,
+			$old_status,
+			$new_status
+		);
+	}
+
+	/**
+	 * Initialize Fluent plugin tracking hooks.
+	 */
+	private function init_fluent_hooks() {
+		// Track Fluent Forms.
+		add_action( 'fluentform_after_insert_form', array( $this, 'track_fluent_form_created' ), 10, 1 );
+		add_action( 'fluentform_before_form_update', array( $this, 'track_fluent_form_updated' ), 10, 1 );
+		add_action( 'fluentform_before_form_delete', array( $this, 'track_fluent_form_deleted' ), 10, 1 );
+		
+		// Track Fluent CRM.
+		add_action( 'fluentcrm_contact_created', array( $this, 'track_fluent_crm_contact_created' ), 10, 1 );
+		add_action( 'fluentcrm_contact_updated', array( $this, 'track_fluent_crm_contact_updated' ), 10, 2 );
+		add_action( 'fluentcrm_contact_deleted', array( $this, 'track_fluent_crm_contact_deleted' ), 10, 1 );
+		
+		// Track Fluent Support.
+		add_action( 'fluent_support/ticket_created', array( $this, 'track_fluent_support_ticket_created' ), 10, 1 );
+		add_action( 'fluent_support/ticket_updated', array( $this, 'track_fluent_support_ticket_updated' ), 10, 2 );
+		
+		// Track Fluent Boards.
+		add_action( 'fluent_boards/board_created', array( $this, 'track_fluent_board_created' ), 10, 1 );
+		add_action( 'fluent_boards/task_created', array( $this, 'track_fluent_board_task_created' ), 10, 1 );
+	}
+
+	/**
+	 * Track Fluent Form creation.
+	 *
+	 * @param int $form_id Form ID.
+	 */
+	public function track_fluent_form_created( $form_id ) {
+		global $wpdb;
+		$form = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}fluentform_forms WHERE id = %d", $form_id ) );
+		
+		if ( ! $form ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'Fluent Form created: %s (ID: %d)',
+			$form->title,
+			$form_id
+		);
+		
+		$this->log_change(
+			'created',
+			'fluent_form',
+			$form_id,
+			$form->title,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent Form update.
+	 *
+	 * @param int $form_id Form ID.
+	 */
+	public function track_fluent_form_updated( $form_id ) {
+		global $wpdb;
+		$form = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}fluentform_forms WHERE id = %d", $form_id ) );
+		
+		if ( ! $form ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'Fluent Form updated: %s (ID: %d)',
+			$form->title,
+			$form_id
+		);
+		
+		$this->log_change(
+			'updated',
+			'fluent_form',
+			$form_id,
+			$form->title,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent Form deletion.
+	 *
+	 * @param int $form_id Form ID.
+	 */
+	public function track_fluent_form_deleted( $form_id ) {
+		global $wpdb;
+		$form = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}fluentform_forms WHERE id = %d", $form_id ) );
+		$form_title = $form ? $form->title : 'Unknown';
+		
+		$description = sprintf(
+			'Fluent Form deleted: %s (ID: %d)',
+			$form_title,
+			$form_id
+		);
+		
+		$this->log_change(
+			'deleted',
+			'fluent_form',
+			$form_id,
+			$form_title,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent CRM contact creation.
+	 *
+	 * @param object $contact Contact object.
+	 */
+	public function track_fluent_crm_contact_created( $contact ) {
+		$description = sprintf(
+			'Fluent CRM contact created: %s %s (Email: %s, ID: %d)',
+			$contact->first_name,
+			$contact->last_name,
+			$contact->email,
+			$contact->id
+		);
+		
+		$this->log_change(
+			'created',
+			'fluent_crm_contact',
+			$contact->id,
+			$contact->email,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent CRM contact update.
+	 *
+	 * @param object $contact Contact object.
+	 * @param array  $old_data Old contact data.
+	 */
+	public function track_fluent_crm_contact_updated( $contact, $old_data ) {
+		$description = sprintf(
+			'Fluent CRM contact updated: %s %s (Email: %s, ID: %d)',
+			$contact->first_name,
+			$contact->last_name,
+			$contact->email,
+			$contact->id
+		);
+		
+		$this->log_change(
+			'updated',
+			'fluent_crm_contact',
+			$contact->id,
+			$contact->email,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent CRM contact deletion.
+	 *
+	 * @param object $contact Contact object.
+	 */
+	public function track_fluent_crm_contact_deleted( $contact ) {
+		$description = sprintf(
+			'Fluent CRM contact deleted: %s %s (Email: %s, ID: %d)',
+			$contact->first_name,
+			$contact->last_name,
+			$contact->email,
+			$contact->id
+		);
+		
+		$this->log_change(
+			'deleted',
+			'fluent_crm_contact',
+			$contact->id,
+			$contact->email,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent Support ticket creation.
+	 *
+	 * @param object $ticket Ticket object.
+	 */
+	public function track_fluent_support_ticket_created( $ticket ) {
+		$description = sprintf(
+			'Fluent Support ticket created: %s (ID: %d, Status: %s)',
+			$ticket->title,
+			$ticket->id,
+			$ticket->status
+		);
+		
+		$this->log_change(
+			'created',
+			'fluent_support_ticket',
+			$ticket->id,
+			$ticket->title,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent Support ticket update.
+	 *
+	 * @param object $ticket Ticket object.
+	 * @param array  $old_data Old ticket data.
+	 */
+	public function track_fluent_support_ticket_updated( $ticket, $old_data ) {
+		$description = sprintf(
+			'Fluent Support ticket updated: %s (ID: %d, Status: %s)',
+			$ticket->title,
+			$ticket->id,
+			$ticket->status
+		);
+		
+		$this->log_change(
+			'updated',
+			'fluent_support_ticket',
+			$ticket->id,
+			$ticket->title,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent Board creation.
+	 *
+	 * @param object $board Board object.
+	 */
+	public function track_fluent_board_created( $board ) {
+		$description = sprintf(
+			'Fluent Board created: %s (ID: %d)',
+			$board->title,
+			$board->id
+		);
+		
+		$this->log_change(
+			'created',
+			'fluent_board',
+			$board->id,
+			$board->title,
+			$description
+		);
+	}
+
+	/**
+	 * Track Fluent Board task creation.
+	 *
+	 * @param object $task Task object.
+	 */
+	public function track_fluent_board_task_created( $task ) {
+		$description = sprintf(
+			'Fluent Board task created: %s (ID: %d)',
+			$task->title,
+			$task->id
+		);
+		
+		$this->log_change(
+			'created',
+			'fluent_board_task',
+			$task->id,
+			$task->title,
+			$description
+		);
+	}
+
+	/**
+	 * Initialize plugin-specific tracking hooks.
+	 */
+	private function init_plugin_specific_hooks() {
+		// Track Slim SEO.
+		add_action( 'slim_seo_meta_updated', array( $this, 'track_slim_seo_meta_updated' ), 10, 2 );
+		
+		// Track SureCart.
+		add_action( 'surecart/purchase_created', array( $this, 'track_surecart_purchase' ), 10, 1 );
+		add_action( 'surecart/order_status_changed', array( $this, 'track_surecart_order_status_changed' ), 10, 3 );
+		
+		// Track Spectra.
+		add_action( 'spectra_design_import', array( $this, 'track_spectra_design_import' ), 10, 1 );
+		
+		// Track Code Snippets plugin.
+		add_action( 'code_snippets_create_snippet', array( $this, 'track_code_snippet_created' ), 10, 1 );
+		add_action( 'code_snippets_update_snippet', array( $this, 'track_code_snippet_updated' ), 10, 1 );
+		add_action( 'code_snippets_delete_snippet', array( $this, 'track_code_snippet_deleted' ), 10, 1 );
+	}
+
+	/**
+	 * Track Slim SEO meta update.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $meta_data SEO meta data.
+	 */
+	public function track_slim_seo_meta_updated( $post_id, $meta_data ) {
+		$post = get_post( $post_id );
+		
+		if ( ! $post ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'Slim SEO meta updated for: %s (ID: %d)',
+			$post->post_title,
+			$post_id
+		);
+		
+		$this->log_change(
+			'seo_updated',
+			'slim_seo',
+			$post_id,
+			$post->post_title,
+			$description
+		);
+	}
+
+	/**
+	 * Track SureCart purchase.
+	 *
+	 * @param object $purchase Purchase object.
+	 */
+	public function track_surecart_purchase( $purchase ) {
+		$description = sprintf(
+			'SureCart purchase: Order #%d (Total: %s)',
+			$purchase->id,
+			isset( $purchase->total_amount ) ? $purchase->total_amount : 'N/A'
+		);
+		
+		$this->log_change(
+			'purchase',
+			'surecart_order',
+			$purchase->id,
+			'Order #' . $purchase->id,
+			$description
+		);
+	}
+
+	/**
+	 * Track SureCart order status change.
+	 *
+	 * @param int    $order_id Order ID.
+	 * @param string $old_status Old status.
+	 * @param string $new_status New status.
+	 */
+	public function track_surecart_order_status_changed( $order_id, $old_status, $new_status ) {
+		$description = sprintf(
+			'SureCart order status changed: Order #%d from "%s" to "%s"',
+			$order_id,
+			$old_status,
+			$new_status
+		);
+		
+		$this->log_change(
+			'status_changed',
+			'surecart_order',
+			$order_id,
+			'Order #' . $order_id,
+			$description,
+			$old_status,
+			$new_status
+		);
+	}
+
+	/**
+	 * Track Spectra design import.
+	 *
+	 * @param array $design_data Design data.
+	 */
+	public function track_spectra_design_import( $design_data ) {
+		$design_name = isset( $design_data['name'] ) ? $design_data['name'] : 'Unknown';
+		
+		$description = sprintf(
+			'Spectra design imported: %s',
+			$design_name
+		);
+		
+		$this->log_change(
+			'design_imported',
+			'spectra',
+			0,
+			$design_name,
+			$description
+		);
+	}
+
+	/**
+	 * Track code snippet creation.
+	 *
+	 * @param int $snippet_id Snippet ID.
+	 */
+	public function track_code_snippet_created( $snippet_id ) {
+		global $wpdb;
+		$snippet = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}snippets WHERE id = %d", $snippet_id ) );
+		
+		if ( ! $snippet ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'Code snippet created: %s (ID: %d)',
+			$snippet->name,
+			$snippet_id
+		);
+		
+		$this->log_change(
+			'created',
+			'code_snippet',
+			$snippet_id,
+			$snippet->name,
+			$description
+		);
+	}
+
+	/**
+	 * Track code snippet update.
+	 *
+	 * @param int $snippet_id Snippet ID.
+	 */
+	public function track_code_snippet_updated( $snippet_id ) {
+		global $wpdb;
+		$snippet = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}snippets WHERE id = %d", $snippet_id ) );
+		
+		if ( ! $snippet ) {
+			return;
+		}
+		
+		$description = sprintf(
+			'Code snippet updated: %s (ID: %d)',
+			$snippet->name,
+			$snippet_id
+		);
+		
+		$this->log_change(
+			'updated',
+			'code_snippet',
+			$snippet_id,
+			$snippet->name,
+			$description
+		);
+	}
+
+	/**
+	 * Track code snippet deletion.
+	 *
+	 * @param int $snippet_id Snippet ID.
+	 */
+	public function track_code_snippet_deleted( $snippet_id ) {
+		global $wpdb;
+		$snippet = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}snippets WHERE id = %d", $snippet_id ) );
+		$snippet_name = $snippet ? $snippet->name : 'Unknown';
+		
+		$description = sprintf(
+			'Code snippet deleted: %s (ID: %d)',
+			$snippet_name,
+			$snippet_id
+		);
+		
+		$this->log_change(
+			'deleted',
+			'code_snippet',
+			$snippet_id,
+			$snippet_name,
+			$description
+		);
 	}
 
 	/**
