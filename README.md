@@ -18,12 +18,29 @@ Log Changes is designed for WordPress sites with multiple administrators who nee
 
 - **Posts & Pages**: Create, update, delete, and status changes
 - **Users**: Registration, profile updates, deletions, and role changes
-- **Plugins**: Activation, deactivation, installation, and deletion
-- **Themes**: Theme switches and activations
+- **Authentication**: Successful logins, failed login attempts, and logouts (with time, user, and IP)
+- **Plugins**: Activation, deactivation, installation, deletion, and updates
+- **Themes**: Theme switches, activations, and updates
 - **Media**: Uploads and deletions with file type information
 - **Menus**: Navigation menu creation, updates, and deletions
 - **Widgets**: Widget updates and changes
+- **Customizer**: Theme customizer changes
 - **Settings**: WordPress options and settings changes
+
+### E-Commerce Tracking
+
+- **WooCommerce**: Product creation/editing/deletion, order creation (purchases), order status changes (including returns/refunds)
+- **SureCart**: Purchase tracking, order status changes
+
+### Plugin-Specific Integrations
+
+- **Fluent Forms**: Form creation, editing, and deletion
+- **Fluent CRM Pro**: Contact creation, updates, and deletion
+- **Fluent Support**: Ticket creation and updates
+- **Fluent Boards**: Board and task creation
+- **Slim SEO**: SEO meta data updates
+- **Spectra**: Design imports
+- **Code Snippets**: Code snippet creation, editing, and deletion
 
 ### Detailed Information
 
@@ -190,9 +207,17 @@ Works with:
 - Multisite installations
 - All standard WordPress post types
 - Custom post types
-- WooCommerce and other e-commerce plugins
+- **WooCommerce** - Product and order tracking
+- **SureCart** - Purchase and order tracking
+- **Fluent Forms** - Form management tracking
+- **Fluent CRM Pro** - Contact management tracking
+- **Fluent Support** - Ticket tracking
+- **Fluent Boards** - Board and task tracking
+- **Slim SEO** - SEO meta tracking
+- **Spectra** - Design import tracking
+- **Code Snippets** - Snippet management tracking
 - Membership plugins
-- Form plugins
+- Other standard WordPress plugins
 
 ## Database
 
@@ -401,6 +426,22 @@ This plugin is licensed under the MIT License. See [LICENSE](LICENSE) file for d
 Created by Barry Schoedel for schoedel.design
 
 ## Changelog
+
+### 1.3.0 - Comprehensive Plugin Integrations and Login Tracking
+
+- **Authentication Tracking**: Successful logins, failed login attempts, and logouts with timestamp, user, and IP
+- **WooCommerce Integration**: Track product creation/editing/deletion, order creation, and order status changes (purchases, returns, refunds)
+- **Plugin/Theme Updates**: Track all plugin and theme updates with version information
+- **Customizer Tracking**: Track WordPress customizer save events
+- **Fluent Forms**: Track form creation, editing, and deletion
+- **Fluent CRM Pro**: Track contact creation, updates, and deletion
+- **Fluent Support**: Track ticket creation and updates
+- **Fluent Boards**: Track board and task creation
+- **Slim SEO**: Track SEO meta data updates
+- **SureCart**: Track purchases and order status changes
+- **Spectra**: Track design imports
+- **Code Snippets**: Track code snippet creation, editing, and deletion
+- **Enhanced Tracking**: Now covers all major WordPress plugins used in modern sites
 
 ### 1.2.0 - Enhanced Option Filtering and Settings
 

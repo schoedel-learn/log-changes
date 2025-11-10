@@ -4,24 +4,41 @@ Tags: activity log, audit log, change tracking, site monitoring, security
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.2
-Stable tag: 1.1.0
+Stable tag: 1.3.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
-Track all changes to your WordPress site including posts, pages, users, plugins, themes, and settings.
+Track all changes to your WordPress site including posts, users, logins, WooCommerce, Fluent plugins, and more.
 
 == Description ==
 
-Log Changes is a comprehensive WordPress plugin that tracks all changes made to your site. It records what changed, when it happened, and who made the changes - perfect for sites with multiple administrators.
+Log Changes is a comprehensive WordPress plugin that tracks all changes made to your site with extensive support for popular e-commerce and business plugins. It records what changed, when it happened, and who made the changes - perfect for sites with multiple administrators.
 
 **Key Features:**
 
+* **Authentication Tracking** - Track successful logins, failed login attempts, and logouts with IP and timestamp
 * **Post & Page Tracking** - Monitor creation, updates, deletion, and status changes
 * **User Management Tracking** - Track new users, profile updates, deletions, and role changes
-* **Plugin & Theme Tracking** - Log activations, deactivations, and theme switches
+* **Plugin & Theme Tracking** - Log activations, deactivations, updates, and theme switches
 * **Media Library Tracking** - Record uploads and deletions
 * **Menu & Widget Tracking** - Monitor changes to navigation menus and widgets
 * **Settings Tracking** - Log changes to WordPress options and settings
+* **Customizer Tracking** - Track theme customizer changes
+
+**E-Commerce & Business Plugin Tracking:**
+
+* **WooCommerce** - Track product creation, updates, deletions, orders, and status changes
+* **SureCart** - Track purchases and order status changes
+* **Fluent Forms** - Track form creation, updates, and deletion
+* **Fluent CRM Pro** - Track contact management activities
+* **Fluent Support** - Track support ticket creation and updates
+* **Fluent Boards** - Track board and task creation
+* **Slim SEO** - Track SEO meta data changes
+* **Spectra** - Track design imports
+* **Code Snippets** - Track snippet creation, updates, and deletion
+
+**Admin Features:**
+
 * **Detailed Information** - Captures user, timestamp, IP address, and user agent
 * **Export to CSV** - Download logs as CSV for backup or analysis in Excel/Google Sheets
 * **Bulk Delete** - Export and delete old logs to free up database space
@@ -89,6 +106,39 @@ The plugin automatically excludes transients and frequently-changing internal Wo
 4. Clean, organized display of change information
 
 == Changelog ==
+
+= 1.3.0 =
+* Added: Successful login tracking with timestamp, user, and IP
+* Added: Failed login attempt tracking for security monitoring
+* Added: Logout tracking
+* Added: WooCommerce product tracking (create, update, delete)
+* Added: WooCommerce order tracking (purchases, status changes, returns)
+* Added: SureCart purchase and order tracking
+* Added: Plugin and theme update tracking with version information
+* Added: WordPress customizer save tracking
+* Added: Fluent Forms tracking (form creation, updates, deletion)
+* Added: Fluent CRM Pro contact tracking
+* Added: Fluent Support ticket tracking
+* Added: Fluent Boards tracking (boards and tasks)
+* Added: Slim SEO meta data tracking
+* Added: Spectra design import tracking
+* Added: Code Snippets tracking (create, update, delete)
+* Improved: Comprehensive audit trail for e-commerce and business sites
+* Improved: Better support for modern WordPress plugin ecosystem
+
+= 1.2.0 =
+* Added: Settings page at Settings → Change Log Settings
+* Added: Enhanced option filtering with exclusion patterns
+* Added: Allowlist support for important settings
+* Added: Configurable cleanup period (1-365 days, default: 21)
+* Added: Manual cleanup option in settings
+* Added: Logging controls for each content type
+* Added: wp_user_roles logging control
+* Added: Developer filters for custom control
+* Added: Wildcard pattern matching for exclusions
+* Added: Settings link on Plugins page
+* Improved: Option tracking with smart filtering
+* Improved: Performance with compiled patterns
 
 = 1.1.0 =
 * Added: Export logs to CSV functionality
