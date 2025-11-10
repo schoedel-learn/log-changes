@@ -2,7 +2,44 @@
 
 This repository includes best practices for WordPress plugin development, including branch protection rules.
 
-## 🚀 Quick Setup (5 Minutes)
+## 🤖 Automated Setup (Recommended - 2 Minutes)
+
+### Option A: Using GitHub Actions Workflow
+
+1. Go to **Actions** → **Setup Branch Protection**
+2. Click **Run workflow**
+3. Enter branch name: `main`
+4. Click **Run workflow** button
+
+✅ Done! The workflow will apply all protection rules automatically.
+
+### Option B: Using Local Script
+
+```bash
+# Using GitHub CLI (recommended)
+./.github/scripts/setup-branch-protection.sh
+
+# Or with a personal access token
+GITHUB_TOKEN=your_token ./.github/scripts/setup-branch-protection.sh
+```
+
+See [.github/scripts/README.md](.github/scripts/README.md) for detailed instructions.
+
+## 📋 What Gets Protected
+
+The automated setup configures:
+- ❌ **Force pushes**: Disabled (prevents history rewriting)
+- ❌ **Branch deletion**: Disabled (prevents accidental removal)
+- ✅ **Pull request required**: 1 approval needed
+- ✅ **Status checks required**:
+  - WordPress Coding Standards
+  - PHP Compatibility Check
+  - Markdown Lint
+- ✅ **Conversation resolution**: Required before merge
+- ✅ **Linear history**: No merge commits allowed
+- ✅ **Admin enforcement**: Even admins must follow rules
+
+## 🔧 Manual Setup (Alternative)
 
 ### 1. Enable Branch Protection
 
@@ -33,8 +70,9 @@ Create a test branch and PR to run the automated checks for the first time.
 After workflows run once:
 - Go back to **Settings** → **Branches** → Edit rule
 - Under "Status checks", add:
-  - `phpcs` (WordPress Coding Standards)
-  - `php-compatibility` (PHP Compatibility)
+  - `WordPress Coding Standards`
+  - `PHP Compatibility Check`
+  - `Markdown Lint`
 
 **Save changes**
 
@@ -82,7 +120,17 @@ Branch protection ensures:
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md)
 - Check [.github/SETUP_INSTRUCTIONS.md](.github/SETUP_INSTRUCTIONS.md)
+- Review [.github/scripts/README.md](.github/scripts/README.md) for automation details
 - Open an issue with the `question` label
+
+## ⚙️ Configuration Files
+
+Branch protection rules are defined in:
+- **[.github/branch-protection-config.yml](.github/branch-protection-config.yml)** - YAML configuration
+- **[.github/scripts/setup-branch-protection.sh](.github/scripts/setup-branch-protection.sh)** - Setup script
+- **[.github/workflows/setup-branch-protection.yml](.github/workflows/setup-branch-protection.yml)** - GitHub Actions workflow
+
+These files are version-controlled and can be updated as needed.
 
 ---
 
