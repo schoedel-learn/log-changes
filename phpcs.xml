@@ -33,10 +33,9 @@
 		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
 	</rule>
 
-	<!-- Rules: WordPress VIP Coding Standards -->
-	<rule ref="WordPress-VIP-Go">
-		<!-- Allow using WordPress.DB.DirectDatabaseQuery as we have a custom table -->
-		<exclude name="WordPress.DB.DirectDatabaseQuery"/>
+	<!-- Allow using WordPress.DB.DirectDatabaseQuery as we have a custom table -->
+	<rule ref="WordPress.DB.DirectDatabaseQuery">
+		<severity>0</severity>
 	</rule>
 
 	<!-- Check for PHP cross-version compatibility -->

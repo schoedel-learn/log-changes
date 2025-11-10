@@ -73,7 +73,7 @@ function log_changes_settings_init() {
 			'sanitize_callback' => 'log_changes_sanitize_settings',
 		)
 	);
-	
+
 	// Option Logging Controls section.
 	add_settings_section(
 		'log_changes_option_controls',
@@ -81,7 +81,7 @@ function log_changes_settings_init() {
 		'log_changes_option_controls_callback',
 		'log_changes_settings'
 	);
-	
+
 	add_settings_field(
 		'log_option_changes',
 		__( 'Log WordPress option changes', 'log-changes' ),
@@ -94,7 +94,7 @@ function log_changes_settings_init() {
 			'default'   => true,
 		)
 	);
-	
+
 	add_settings_field(
 		'option_exclusions',
 		__( 'Excluded option patterns', 'log-changes' ),
@@ -109,7 +109,7 @@ function log_changes_settings_init() {
 			'rows'        => 10,
 		)
 	);
-	
+
 	add_settings_field(
 		'option_allowlist',
 		__( 'Always log these options', 'log-changes' ),
@@ -124,7 +124,7 @@ function log_changes_settings_init() {
 			'rows'        => 10,
 		)
 	);
-	
+
 	add_settings_field(
 		'log_wp_user_roles',
 		__( 'Log wp_user_roles changes', 'log-changes' ),
@@ -138,7 +138,7 @@ function log_changes_settings_init() {
 			'description' => __( 'Plugins often trigger wp_user_roles updates automatically. Uncheck to reduce noise.', 'log-changes' ),
 		)
 	);
-	
+
 	// Other Logging Controls section.
 	add_settings_section(
 		'log_changes_other_controls',
@@ -146,7 +146,7 @@ function log_changes_settings_init() {
 		'log_changes_other_controls_callback',
 		'log_changes_settings'
 	);
-	
+
 	$logging_types = array(
 		'log_post_changes'   => __( 'Log post/page updates', 'log-changes' ),
 		'log_user_changes'   => __( 'Log user changes', 'log-changes' ),
@@ -156,7 +156,7 @@ function log_changes_settings_init() {
 		'log_menu_changes'   => __( 'Log menu changes', 'log-changes' ),
 		'log_widget_changes' => __( 'Log widget changes', 'log-changes' ),
 	);
-	
+
 	foreach ( $logging_types as $key => $label ) {
 		add_settings_field(
 			$key,
@@ -171,7 +171,7 @@ function log_changes_settings_init() {
 			)
 		);
 	}
-	
+
 	// Cleanup Settings section.
 	add_settings_section(
 		'log_changes_cleanup_settings',
@@ -179,7 +179,7 @@ function log_changes_settings_init() {
 		'log_changes_cleanup_settings_callback',
 		'log_changes_settings'
 	);
-	
+
 	add_settings_field(
 		'cleanup_days',
 		__( 'Auto-delete logs older than (days)', 'log-changes' ),
@@ -291,44 +291,47 @@ function log_changes_number_field( $args ) {
  * @return string Default exclusions (one per line).
  */
 function log_changes_get_default_exclusions() {
-	return implode( "\n", array(
-		// Transients (already handled but included for completeness).
-		'_transient_*',
-		'_site_transient_*',
-		
-		// Cron.
-		'cron',
-		'doing_cron',
-		
-		// Asset versions.
-		'__*_asset_version',
-		'*_version_*',
-		
-		// Hit counters and analytics.
-		'*hit_count*',
-		'*page_views*',
-		'*visitor_count*',
-		
-		// User roles (unless explicitly enabled).
-		'wp_user_roles',
-		'*_user_roles',
-		
-		// Sessions and cache.
-		'*_session_*',
-		'*_cache_*',
-		
-		// Temporary data.
-		'*_temp_*',
-		'*_tmp_*',
-		
-		// Auto-generated.
-		'rewrite_rules',
-		'can_compress_scripts',
-		
-		// Plugin internal state.
-		'*_doing_*',
-		'*_processing_*',
-	) );
+	return implode(
+		"\n",
+		array(
+			// Transients (already handled but included for completeness).
+			'_transient_*',
+			'_site_transient_*',
+
+			// Cron.
+			'cron',
+			'doing_cron',
+
+			// Asset versions.
+			'__*_asset_version',
+			'*_version_*',
+
+			// Hit counters and analytics.
+			'*hit_count*',
+			'*page_views*',
+			'*visitor_count*',
+
+			// User roles (unless explicitly enabled).
+			'wp_user_roles',
+			'*_user_roles',
+
+			// Sessions and cache.
+			'*_session_*',
+			'*_cache_*',
+
+			// Temporary data.
+			'*_temp_*',
+			'*_tmp_*',
+
+			// Auto-generated.
+			'rewrite_rules',
+			'can_compress_scripts',
+
+			// Plugin internal state.
+			'*_doing_*',
+			'*_processing_*',
+		)
+	);
 }
 
 /**
@@ -337,28 +340,31 @@ function log_changes_get_default_exclusions() {
  * @return string Default allowlist (one per line).
  */
 function log_changes_get_default_allowlist() {
-	return implode( "\n", array(
-		// Site settings.
-		'blogname',
-		'blogdescription',
-		'siteurl',
-		'home',
-		'admin_email',
-		
-		// Reading/writing.
-		'posts_per_page',
-		'date_format',
-		'time_format',
-		
-		// Discussion.
-		'default_comment_status',
-		'comment_moderation',
-		
-		// Permalinks.
-		'permalink_structure',
-		'category_base',
-		'tag_base',
-	) );
+	return implode(
+		"\n",
+		array(
+			// Site settings.
+			'blogname',
+			'blogdescription',
+			'siteurl',
+			'home',
+			'admin_email',
+
+			// Reading/writing.
+			'posts_per_page',
+			'date_format',
+			'time_format',
+
+			// Discussion.
+			'default_comment_status',
+			'comment_moderation',
+
+			// Permalinks.
+			'permalink_structure',
+			'category_base',
+			'tag_base',
+		)
+	);
 }
 
 /**
@@ -369,7 +375,7 @@ function log_changes_get_default_allowlist() {
  */
 function log_changes_sanitize_settings( $input ) {
 	$sanitized = array();
-	
+
 	// Sanitize checkboxes (boolean values).
 	$checkbox_fields = array(
 		'log_option_changes',
@@ -382,26 +388,26 @@ function log_changes_sanitize_settings( $input ) {
 		'log_menu_changes',
 		'log_widget_changes',
 	);
-	
+
 	foreach ( $checkbox_fields as $field ) {
 		$sanitized[ $field ] = ! empty( $input[ $field ] ) ? 1 : 0;
 	}
-	
+
 	// Sanitize textareas (patterns).
 	if ( isset( $input['option_exclusions'] ) ) {
 		$sanitized['option_exclusions'] = log_changes_sanitize_patterns( $input['option_exclusions'] );
 	}
-	
+
 	if ( isset( $input['option_allowlist'] ) ) {
 		$sanitized['option_allowlist'] = log_changes_sanitize_patterns( $input['option_allowlist'] );
 	}
-	
+
 	// Sanitize cleanup days.
 	if ( isset( $input['cleanup_days'] ) ) {
-		$days = absint( $input['cleanup_days'] );
+		$days                      = absint( $input['cleanup_days'] );
 		$sanitized['cleanup_days'] = max( 1, min( 365, $days ) );
 	}
-	
+
 	return $sanitized;
 }
 
@@ -414,7 +420,7 @@ function log_changes_sanitize_settings( $input ) {
 function log_changes_sanitize_patterns( $patterns ) {
 	// Split into lines.
 	$lines = explode( "\n", $patterns );
-	
+
 	// Sanitize each line.
 	$sanitized = array();
 	foreach ( $lines as $line ) {
@@ -422,14 +428,14 @@ function log_changes_sanitize_patterns( $patterns ) {
 		if ( empty( $line ) ) {
 			continue;
 		}
-		
+
 		// Only allow alphanumeric, underscore, dash, and asterisk.
 		$line = preg_replace( '/[^a-zA-Z0-9_*-]/', '', $line );
-		
+
 		if ( ! empty( $line ) ) {
 			$sanitized[] = $line;
 		}
 	}
-	
+
 	return implode( "\n", $sanitized );
 }
