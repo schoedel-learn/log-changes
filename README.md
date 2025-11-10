@@ -315,7 +315,9 @@ Contributions are welcome! We appreciate your help in making this plugin better.
 - [Security Policy](SECURITY.md) - Reporting security issues
 
 **Quick start:**
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
 
+**Quick Start:**
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes following [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/)
@@ -331,6 +333,17 @@ Contributions are welcome! We appreciate your help in making this plugin better.
 - ✨ New features
 - 🧪 Testing and QA
 - 🔒 Security improvements
+3. Make your changes following WordPress coding standards
+4. Test thoroughly
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+**Important Notes:**
+- All pull requests require review before merging
+- Automated tests must pass (PHPCS, PHP compatibility)
+- Follow the [Code of Conduct](CODE_OF_CONDUCT.md)
+- See [Branch Protection Guide](.github/BRANCH_PROTECTION.md) for repository rules
 
 ### Coding Standards
 
@@ -339,6 +352,24 @@ This plugin follows:
 - WordPress Plugin Best Practices
 - WordPress Security Best Practices
 - PHPCS with WordPress ruleset
+
+Run code quality checks:
+```bash
+composer install
+composer run-script phpcs  # Check coding standards
+composer run-script phpcbf # Fix coding standards automatically
+```
+
+### Branch Protection
+
+The `main` branch is protected to ensure code quality:
+- ✅ Pull requests required (no direct pushes)
+- ✅ Code review required before merge
+- ✅ All automated tests must pass
+- ✅ Conversation resolution required
+- ✅ Force pushes disabled
+
+See [Branch Protection Setup Guide](.github/BRANCH_PROTECTION.md) for detailed information.
 
 ## Support
 

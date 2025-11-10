@@ -97,4 +97,78 @@
         </properties>
     </rule>
 
+<ruleset name="WordPress Coding Standards for Log Changes Plugin">
+	<description>Sniffs for the Log Changes WordPress plugin</description>
+
+	<!-- What to scan -->
+	<file>.</file>
+
+	<!-- Exclude patterns -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+	<exclude-pattern>*/assets/*</exclude-pattern>
+
+	<!-- How to scan -->
+	<arg value="sp"/> <!-- Show sniff and progress -->
+	<arg name="basepath" value="."/><!-- Strip the file paths down to the relevant bit -->
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/><!-- Enables parallel processing when available for faster results. -->
+
+	<!-- Rules: Check PHP version compatibility -->
+	<config name="testVersion" value="7.2-"/>
+
+	<!-- Rules: WordPress Coding Standards -->
+	<rule ref="WordPress-Core">
+		<!-- Allow short array syntax -->
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+	</rule>
+	<rule ref="WordPress-Docs"/>
+	<rule ref="WordPress-Extra">
+		<!-- Exclude filename rules as we follow WordPress plugin standard structure -->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+	</rule>
+
+	<!-- Allow using WordPress.DB.DirectDatabaseQuery as we have a custom table -->
+	<rule ref="WordPress.DB.DirectDatabaseQuery">
+		<severity>0</severity>
+	</rule>
+
+	<!-- Check for PHP cross-version compatibility -->
+	<config name="minimum_supported_wp_version" value="5.0"/>
+
+	<!-- Rules: WordPress Security -->
+	<rule ref="WordPress.Security"/>
+
+	<!-- Check text domain -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="log-changes"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Verify that everything in the global namespace is prefixed -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="log_changes"/>
+				<element value="Log_Changes"/>
+				<element value="LOG_CHANGES"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Allow for theme specific exceptions to the WordPress.Files.FileName rule -->
+	<rule ref="WordPress.Files.FileName">
+		<properties>
+			<property name="strict_class_file_names" value="false"/>
+		</properties>
+	</rule>
+
+	<!-- Set the memory limit to 256M for PHPCS -->
+	<ini name="memory_limit" value="256M"/>
 </ruleset>
