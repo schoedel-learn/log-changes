@@ -1,0 +1,97 @@
+name: Security Report
+description: Report a security vulnerability (use private reporting if possible)
+title: "[Security]: "
+labels: ["security", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ IMPORTANT: Private Reporting Recommended
+        
+        For sensitive security vulnerabilities, please use [GitHub Security Advisories](https://github.com/schoedel-learn/log-changes/security/advisories/new) 
+        or email security@schoedel.design instead of creating a public issue.
+        
+        Only use this form for:
+        - Security improvements or suggestions
+        - Non-critical security concerns
+        - Security best practice discussions
+
+  - type: checkboxes
+    id: severity
+    attributes:
+      label: Is this a critical vulnerability?
+      description: If yes, please use private reporting methods instead
+      options:
+        - label: This is NOT a critical vulnerability that could be immediately exploited
+          required: true
+        - label: I understand this issue will be publicly visible
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Security Category
+      description: What type of security concern is this?
+      options:
+        - Security Improvement Suggestion
+        - Best Practice Recommendation
+        - Documentation Gap
+        - Configuration Concern
+        - Minor Security Issue
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the security concern or improvement
+      placeholder: Please provide details about the security concern
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could happen if this isn't addressed?
+      placeholder: Describe the potential security impact
+    validations:
+      required: true
+
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Recommended Action
+      description: What would you recommend to address this?
+      placeholder: Describe your suggested solution or mitigation
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Any relevant security advisories, CVEs, or documentation
+      placeholder: Links to relevant security information
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ### For Critical Vulnerabilities
+        
+        If you believe you've found a critical security vulnerability:
+        
+        1. **DO NOT** submit it as a public issue
+        2. Use [GitHub Security Advisories](https://github.com/schoedel-learn/log-changes/security/advisories/new)
+        3. Or email: security@schoedel.design
+        4. Include:
+           - Vulnerability type (XSS, SQL Injection, etc.)
+           - Affected file(s) and line(s)
+           - Steps to reproduce
+           - Proof of concept (if safe to share)
+           - Suggested fix (if you have one)
+        
+        We aim to respond within 48 hours and release fixes for critical vulnerabilities within 30 days.

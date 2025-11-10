@@ -1,0 +1,27 @@
+# Code Owners for Log Changes Plugin
+# These users will be requested for review when someone opens a pull request
+
+# Default owners for everything in the repo
+* @schoedel-learn
+
+# PHP files require review from WordPress experts
+*.php @schoedel-learn
+
+# JavaScript and CSS require front-end review
+*.js @schoedel-learn
+*.css @schoedel-learn
+
+# Documentation changes
+*.md @schoedel-learn
+/docs/ @schoedel-learn
+
+# Security-sensitive files require security review
+/SECURITY.md @schoedel-learn
+/.github/workflows/codeql.yml @schoedel-learn
+/uninstall.php @schoedel-learn
+
+# Configuration files
+/.github/ @schoedel-learn
+/.gitignore @schoedel-learn
+/composer.json @schoedel-learn
+/phpcs.xml @schoedel-learn

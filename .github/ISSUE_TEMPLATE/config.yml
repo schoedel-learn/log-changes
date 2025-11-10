@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Support & Questions
+    url: https://schoedel.design/support
+    about: Get help and ask questions about using the plugin
+  - name: 🔒 Private Security Report
+    url: https://github.com/schoedel-learn/log-changes/security/advisories/new
+    about: Report a security vulnerability privately (preferred method)
+  - name: 📖 Documentation
+    url: https://github.com/schoedel-learn/log-changes#readme
+    about: Read the plugin documentation and guides
+  - name: 💡 Discussions
+    url: https://github.com/schoedel-learn/log-changes/discussions
+    about: Join community discussions and share ideas

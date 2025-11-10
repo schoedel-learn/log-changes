@@ -1,5 +1,11 @@
 # Log Changes - WordPress Plugin
 
+[![CodeQL](https://github.com/schoedel-learn/log-changes/actions/workflows/codeql.yml/badge.svg)](https://github.com/schoedel-learn/log-changes/actions/workflows/codeql.yml)
+[![PHP Linting](https://github.com/schoedel-learn/log-changes/actions/workflows/php-linting.yml/badge.svg)](https://github.com/schoedel-learn/log-changes/actions/workflows/php-linting.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)](https://wordpress.org/)
+[![PHP](https://img.shields.io/badge/PHP-7.2%2B-purple.svg)](https://www.php.net/)
+
 A comprehensive WordPress plugin for tracking all changes to your site with detailed information about what changed, when, and who made the changes.
 
 ## Description
@@ -230,6 +236,38 @@ Logs are automatically deleted after 21 days. Exported CSV files are downloaded 
 
 Ensure your privacy policy discloses this tracking if required by your jurisdiction.
 
+## Security
+
+This plugin is built with security as a top priority. See our [Security Policy](SECURITY.md) for details.
+
+### Security Features
+
+- **Input Validation**: All user inputs are sanitized using WordPress functions
+- **Output Escaping**: All output is properly escaped to prevent XSS
+- **SQL Injection Prevention**: Uses prepared statements with `wpdb->prepare()`
+- **Access Control**: Only users with `manage_options` capability can view logs
+- **Nonce Verification**: All forms and AJAX requests are protected with nonces
+- **IP Spoofing Protection**: Validates IP addresses against server variables
+- **No External Calls**: All data stays in your WordPress database
+
+### Security Scanning
+
+This plugin is regularly scanned for security vulnerabilities:
+
+- **CodeQL**: Automated code analysis for security issues
+- **WordPress Coding Standards**: Follows WordPress best practices
+- **Dependabot**: Automatic dependency vulnerability alerts
+- **Manual Reviews**: Regular security audits
+
+### Reporting Security Issues
+
+Found a security vulnerability? Please report it responsibly:
+
+- **GitHub Security Advisories**: [Report privately](https://github.com/schoedel-learn/log-changes/security/advisories/new) (preferred)
+- **Email**: security@schoedel.design
+
+See our [Security Policy](SECURITY.md) for more information.
+
 ## Uninstallation
 
 When you delete the plugin through WordPress admin, it will:
@@ -269,11 +307,32 @@ log-changes/
 
 ### Contributing
 
+Contributions are welcome! We appreciate your help in making this plugin better.
+
+**Before contributing, please read:**
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community standards
+- [Security Policy](SECURITY.md) - Reporting security issues
+
+**Quick start:**
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
 
 **Quick Start:**
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes following [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/)
+4. Test thoroughly (see [CONTRIBUTING.md](CONTRIBUTING.md))
+5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+**Areas where we need help:**
+- 🐛 Bug fixes
+- 📝 Documentation improvements
+- 🌐 Translations
+- ✨ New features
+- 🧪 Testing and QA
+- 🔒 Security improvements
 3. Make your changes following WordPress coding standards
 4. Test thoroughly
 5. Commit your changes (`git commit -m 'Add amazing feature'`)
@@ -314,9 +373,24 @@ See [Branch Protection Setup Guide](.github/BRANCH_PROTECTION.md) for detailed i
 
 ## Support
 
-For issues, questions, or feature requests:
-- GitHub Issues: https://github.com/schoedel-learn/log-changes/issues
-- Website: https://schoedel.design/support
+Need help? Here's how to get support:
+
+### Documentation
+- 📖 [README](README.md) - Getting started and features
+- 🚀 [Quick Start Guide](QUICKSTART.md) - Fast setup
+- 📦 [Installation Guide](INSTALL.md) - Detailed installation
+- 🧪 [Testing Guide](TESTING.md) - Testing procedures
+- 🤝 [Contributing Guide](CONTRIBUTING.md) - How to contribute
+
+### Getting Help
+- 🐛 [Report a Bug](https://github.com/schoedel-learn/log-changes/issues/new?template=bug_report.yml) - Submit a bug report
+- 💡 [Request a Feature](https://github.com/schoedel-learn/log-changes/issues/new?template=feature_request.yml) - Suggest new features
+- 💬 [Discussions](https://github.com/schoedel-learn/log-changes/discussions) - Ask questions and share ideas
+- 🌐 [Support Website](https://schoedel.design/support) - Direct support
+
+### Security Issues
+- 🔒 [Security Policy](SECURITY.md) - Read our security policy
+- 🚨 [Report Vulnerability](https://github.com/schoedel-learn/log-changes/security/advisories/new) - Report security issues privately
 
 ## License
 
