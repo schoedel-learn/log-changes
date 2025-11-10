@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Log Changes
  * Plugin URI: https://schoedel.design/log-changes
- * Description: Tracks all changes to your WordPress site including posts, pages, users, plugins, themes, and settings. Records what changed, when, and who made the changes. Includes CSV export and automatic cleanup after 21 days.
- * Version: 1.2.0
+ * Description: Comprehensive audit trail for WordPress with login tracking, WooCommerce, Fluent plugins, and more. Tracks posts, pages, users, products, orders, forms, and all site changes with detailed old/new values. Includes CSV export and automatic cleanup.
+ * Version: 1.3.0
  * Requires at least: 5.0
  * Requires PHP: 7.2
  * Author: Barry Schoedel
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'LOG_CHANGES_VERSION', '1.2.0' );
+define( 'LOG_CHANGES_VERSION', '1.3.0' );
 define( 'LOG_CHANGES_PLUGIN_FILE', __FILE__ );
 define( 'LOG_CHANGES_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LOG_CHANGES_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
