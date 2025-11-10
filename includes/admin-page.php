@@ -94,9 +94,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 					add_query_arg(
 						array_merge(
 							array( 'action' => 'export' ),
-							array_filter( $_GET, function( $key ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-								return in_array( $key, array( 'page', 'filter_action', 'filter_object', 'filter_user', 'search', 'date_from', 'date_to' ), true );
-							}, ARRAY_FILTER_USE_KEY )
+							array_filter(
+								$_GET,
+								function ( $key ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+									return in_array( $key, array( 'page', 'filter_action', 'filter_object', 'filter_user', 'search', 'date_from', 'date_to' ), true );
+								},
+								ARRAY_FILTER_USE_KEY
+							)
 						),
 						admin_url( 'admin.php' )
 					),
@@ -231,7 +235,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							'current'   => $page_num,
 						)
 					);
-					
+
 					if ( $page_links ) {
 						echo '<span class="displaying-num">' . sprintf(
 							/* translators: 1: current page number, 2: total pages */

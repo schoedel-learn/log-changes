@@ -1,0 +1,61 @@
+name: PHP Linting and Code Standards
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  workflow_dispatch:
+
+# Declare default permissions as read only
+permissions: read-all
+
+jobs:
+  php-lint:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        coverage: none
+    
+    - name: Check PHP syntax
+      run: |
+        find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
+
+  phpcs:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        tools: composer, cs2pr
+    
+    - name: Install dependencies
+      run: |
+        composer require --dev wp-coding-standards/wpcs:^3.0 dealerdirect/phpcodesniffer-composer-installer --no-interaction
+    
+    - name: Run PHPCS
+      run: |
+        vendor/bin/phpcs --standard=WordPress --report=checkstyle --extensions=php --ignore=vendor/ . | cs2pr
+      continue-on-error: true
