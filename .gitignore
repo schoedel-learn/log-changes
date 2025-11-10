@@ -52,6 +52,27 @@ build/
 *.min.css
 *.map
 
+# Testing
+phpunit.xml
+.phpunit.result.cache
+tests/_output/
+tests/_support/_generated/
+
+# Coverage
+coverage/
+clover.xml
+*.coverage
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
 # OS
 .DS_Store
 .DS_Store?
@@ -60,3 +81,14 @@ build/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Backups
+*.bak
+*.backup
+*~.nib
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.rar

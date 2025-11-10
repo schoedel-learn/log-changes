@@ -27,16 +27,16 @@ delete_option( 'log_changes_version' );
 // For multisite installations, delete options from all sites.
 if ( is_multisite() ) {
 	$blog_ids = $wpdb->get_col( "SELECT blog_id FROM {$wpdb->blogs}" );
-	
+
 	foreach ( $blog_ids as $blog_id ) {
 		switch_to_blog( $blog_id );
-		
+
 		// Table name is safely reconstructed for each blog.
 		$table_name = $wpdb->prefix . 'change_log';
 		$wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $table_name ) . '`' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		
+
 		delete_option( 'log_changes_version' );
-		
+
 		restore_current_blog();
 	}
 }
